@@ -14,11 +14,37 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { LogOut, User, Ticket, History } from "lucide-react"
+import { useEffect, useState } from "react"
+
+interface UserInfo {
+  userName: string;
+  avatarUrl: string | null;
+  email: string | null;
+  fullName: string | null;
+  roles: string[];
+}
 
 export function MainNav() {
   const pathname = usePathname()
-  // Tạm thời set isLoggedIn = true để test UI
-  const isLoggedIn = true
+  const [user, setUser] = useState<UserInfo | null>(null)
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user")
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr)
+        setUser(userData)
+      } catch (error) {
+        console.error("Error parsing user data:", error)
+      }
+    }
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem("user")
+    setUser(null)
+    window.location.href = "/login"
+  }
 
   const routes = [
     {
@@ -64,23 +90,25 @@ export function MainNav() {
       </div>
 
       <div className="flex items-center gap-4">
-        {isLoggedIn ? (
+        {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg" alt="User avatar" />
-                  <AvatarFallback>NV</AvatarFallback>
+                  <AvatarImage src={user.avatarUrl || "/placeholder.svg"} alt={user.userName} />
+                  <AvatarFallback>{user.userName.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Nguyễn Văn A</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    nguyenvana@example.com
-                  </p>
+                  <p className="text-sm font-medium leading-none">{user.fullName || user.userName}</p>
+                  {user.email && (
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  )}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -103,7 +131,7 @@ export function MainNav() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer text-red-600">
+              <DropdownMenuItem className="cursor-pointer text-red-600" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Đăng xuất</span>
               </DropdownMenuItem>
@@ -112,10 +140,10 @@ export function MainNav() {
         ) : (
           <div className="flex items-center gap-2">
             <Button variant="ghost" asChild>
-              <Link href="/auth/login">Đăng nhập</Link>
+              <Link href="/login">Đăng nhập</Link>
             </Button>
             <Button asChild>
-              <Link href="/auth/register">Đăng ký</Link>
+              <Link href="/register">Đăng ký</Link>
             </Button>
           </div>
         )}

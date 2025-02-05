@@ -1,7 +1,7 @@
 import api from './config';
 
-export interface LoginCredentials {
-  email: string;
+export interface LoginCredentials { 
+  username: string;
   password: string;
 }
 
@@ -10,13 +10,13 @@ export interface RegisterData extends LoginCredentials {
 }
 
 export const authApi = {
-  login: async (credentials: LoginCredentials) => {
-    const response = await api.post('/auth/login', credentials);
+  login: async (credentials: LoginCredentials) => { 
+    const response = await api.post('/auth/login', credentials); 
     return response.data;
   },
 
   register: async (data: RegisterData) => {
-    const response = await api.post('/auth/register', data);
+    const response = await api.post('/Auth/register', data);
     return response.data;
   },
 

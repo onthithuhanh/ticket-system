@@ -88,7 +88,7 @@ export default function AdminEventsPage() {
         search: searchTerm,
         pageIndex: currentPage,
         pageSize,
-        category: categoryFilter
+        category: categoryFilter === 'all' ? undefined : categoryFilter
       })
       setEvents(response.contends)
       setTotalPages(response.totalPages)
@@ -201,8 +201,11 @@ export default function AdminEventsPage() {
               <SelectContent>
                 <SelectItem value="all">Tất cả thể loại</SelectItem>
                 <SelectItem value="Drame">Kịch</SelectItem>
+                <SelectItem value="Music">Âm nhạc</SelectItem>
+                <SelectItem value="Dance">Múa</SelectItem>
+                <SelectItem value="Circus">Xiếc</SelectItem>
                 <SelectItem value="Comedy">Hài kịch</SelectItem>
-                <SelectItem value="Musical">Nhạc kịch</SelectItem>
+                <SelectItem value="Opera">Opera</SelectItem>
               </SelectContent>
             </Select>
           </div>

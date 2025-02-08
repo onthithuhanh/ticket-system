@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -8,8 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Calendar, Clock } from "lucide-react"
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { showtimesApi, Showtime, GetShowtimesResponse } from "@/lib/api/showtimes"
+import { format } from 'date-fns'
+import { vi } from 'date-fns/locale'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,158 +36,80 @@ import {
 
 export default function AdminShowtimesPage() {
   const { toast } = useToast()
+  const [showtimes, setShowtimes] = useState<Showtime[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [roomFilter, setRoomFilter] = useState("all")
   const [dateFilter, setDateFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(10) // Adjust page size as needed
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const [hasPreviousPage, setHasPreviousPage] = useState(false)
+  const [hasNextPage, setHasNextPage] = useState(false)
 
-  // Dữ liệu mẫu cho xuất chiếu
-  const showtimes = [
-    {
-      id: 1,
-      playId: 1,
-      playTitle: "Lôi Vũ",
-      roomId: 1,
-      roomName: "Sân khấu chính",
-      date: "2023-06-20",
-      time: "19:30",
-      status: "scheduled",
-      ticketPrices: {
-        vip: 500000,
-        standard: 300000,
-        economy: 200000,
-      },
-      ticketsSold: 120,
-      totalSeats: 500,
-      revenue: 45000000,
-      createdDate: "15/06/2023",
-    },
-    {
-      id: 2,
-      playId: 2,
-      playTitle: "Romeo và Juliet",
-      roomId: 1,
-      roomName: "Sân khấu chính",
-      date: "2023-06-22",
-      time: "20:00",
-      status: "scheduled",
-      ticketPrices: {
-        vip: 600000,
-        standard: 350000,
-        economy: 250000,
-      },
-      ticketsSold: 85,
-      totalSeats: 500,
-      revenue: 28750000,
-      createdDate: "16/06/2023",
-    },
-    {
-      id: 3,
-      playId: 1,
-      playTitle: "Lôi Vũ",
-      roomId: 2,
-      roomName: "Sân khấu nhỏ",
-      date: "2023-06-25",
-      time: "19:00",
-      status: "scheduled",
-      ticketPrices: {
-        vip: 400000,
-        standard: 250000,
-        economy: 150000,
-      },
-      ticketsSold: 95,
-      totalSeats: 150,
-      revenue: 21250000,
-      createdDate: "17/06/2023",
-    },
-    {
-      id: 4,
-      playId: 3,
-      playTitle: "Người Đàn Bà Điên",
-      roomId: 2,
-      roomName: "Sân khấu nhỏ",
-      date: "2023-06-18",
-      time: "20:30",
-      status: "completed",
-      ticketPrices: {
-        vip: 450000,
-        standard: 280000,
-        economy: 180000,
-      },
-      ticketsSold: 140,
-      totalSeats: 150,
-      revenue: 35200000,
-      createdDate: "10/06/2023",
-    },
-    {
-      id: 5,
-      playId: 2,
-      playTitle: "Romeo và Juliet",
-      roomId: 3,
-      roomName: "Sân khấu ngoài trời",
-      date: "2023-06-30",
-      time: "19:30",
-      status: "cancelled",
-      ticketPrices: {
-        vip: 550000,
-        standard: 320000,
-        economy: 220000,
-      },
-      ticketsSold: 0,
-      totalSeats: 800,
-      revenue: 0,
-      createdDate: "20/06/2023",
-    },
-  ]
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchShowtimes()
+    }, 500) // Debounce search for 500ms
 
-  const filteredShowtimes = showtimes.filter((showtime) => {
-    const matchesSearch =
-      showtime.playTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      showtime.roomName.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || showtime.status === statusFilter
-    const matchesRoom = roomFilter === "all" || showtime.roomId.toString() === roomFilter
+    return () => clearTimeout(timer)
+  }, [currentPage, searchTerm]) // Add other filters here if implemented
 
-    let matchesDate = true
-    if (dateFilter === "today") {
-      const today = new Date().toISOString().split("T")[0]
-      matchesDate = showtime.date === today
-    } else if (dateFilter === "week") {
-      const today = new Date()
-      const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-      const showtimeDate = new Date(showtime.date)
-      matchesDate = showtimeDate >= today && showtimeDate <= weekFromNow
-    }
-
-    return matchesSearch && matchesStatus && matchesRoom && matchesDate
-  })
-
-  const handleDeleteShowtime = (id: number, playTitle: string) => {
-    toast({
-      title: "Đã xóa xuất chiếu",
-      description: `Xuất chiếu "${playTitle}" đã được xóa thành công`,
-    })
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "scheduled":
-        return <Badge className="bg-blue-500">Đã lên lịch</Badge>
-      case "ongoing":
-        return <Badge className="bg-green-500">Đang diễn</Badge>
-      case "completed":
-        return <Badge className="bg-gray-500">Đã kết thúc</Badge>
-      case "cancelled":
-        return <Badge className="bg-red-500">Đã hủy</Badge>
-      default:
-        return <Badge>Không xác định</Badge>
+  const fetchShowtimes = async () => {
+    setIsLoading(true)
+    try {
+      const response: GetShowtimesResponse = await showtimesApi.getShowtimes({
+        pageIndex: currentPage,
+        pageSize,
+        search: searchTerm,
+        // Add other filter parameters here if implemented
+      })
+      setShowtimes(response.contends)
+      setTotalPages(response.totalPages)
+      setTotalItems(response.totalItems)
+      setHasPreviousPage(response.hasPreviousPage)
+      setHasNextPage(response.hasNextPage)
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Đã xảy ra lỗi khi tải danh sách xuất chiếu",
+        variant: "destructive",
+      })
+      setShowtimes([])
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  // Thống kê
-  const totalShowtimes = showtimes.length
-  const scheduledShowtimes = showtimes.filter((s) => s.status === "scheduled").length
-  const totalRevenue = showtimes.reduce((sum, s) => sum + s.revenue, 0)
-  const totalTicketsSold = showtimes.reduce((sum, s) => sum + s.ticketsSold, 0)
+  const handleDeleteShowtime = async (id: number) => {
+    try {
+      await showtimesApi.deleteShowtime(id)
+      toast({
+        title: "Thành công",
+        description: "Đã xóa xuất chiếu",
+      })
+      fetchShowtimes() // Refresh list after deletion
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Đã xảy ra lỗi khi xóa xuất chiếu",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const formatDateTime = (isoString: string) => {
+    if (!isoString) return 'N/A';
+    try {
+      const date = new Date(isoString);
+      return format(date, 'dd/MM/yyyy HH:mm', { locale: vi });
+    } catch (e) {
+      console.error('Error formatting date:', e);
+      return 'Invalid Date';
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -192,47 +118,9 @@ export default function AdminShowtimesPage() {
         <Link href="/admin/showtimes/create">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Tạo xuất chiếu mới
+            Thêm xuất chiếu mới
           </Button>
         </Link>
-      </div>
-
-      {/* Thống kê tổng quan */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tổng xuất chiếu</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalShowtimes}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Đã lên lịch</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{scheduledShowtimes}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vé đã bán</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalTicketsSold.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalRevenue.toLocaleString()}đ</div>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>
@@ -290,55 +178,37 @@ export default function AdminShowtimesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Vở kịch</TableHead>
+                  <TableHead>Sự kiện</TableHead>
                   <TableHead>Phòng</TableHead>
-                  <TableHead>Ngày giờ</TableHead>
-                  <TableHead>Giá vé</TableHead>
-                  <TableHead>Vé bán/Tổng</TableHead>
-                  <TableHead>Doanh thu</TableHead>
-                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>Thời gian bắt đầu</TableHead>
+                  <TableHead>Giá VIP</TableHead>
+                  <TableHead>Giá Thường</TableHead>
+                  <TableHead>Giá Tiết kiệm</TableHead>
                   <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredShowtimes.length === 0 ? (
+                {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">
+                    <TableCell colSpan={6} className="text-center">
+                      Đang tải...
+                    </TableCell>
+                  </TableRow>
+                ) : showtimes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center">
                       Không tìm thấy xuất chiếu nào
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredShowtimes.map((showtime) => (
+                  showtimes.map((showtime) => (
                     <TableRow key={showtime.id}>
-                      <TableCell>
-                        <div className="font-medium">{showtime.playTitle}</div>
-                      </TableCell>
-                      <TableCell>{showtime.roomName}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{showtime.date}</div>
-                          <div className="text-sm text-muted-foreground">{showtime.time}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>VIP: {showtime.ticketPrices.vip.toLocaleString()}đ</div>
-                          <div>Thường: {showtime.ticketPrices.standard.toLocaleString()}đ</div>
-                          <div>Tiết kiệm: {showtime.ticketPrices.economy.toLocaleString()}đ</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">
-                            {showtime.ticketsSold}/{showtime.totalSeats}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {Math.round((showtime.ticketsSold / showtime.totalSeats) * 100)}%
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{showtime.revenue.toLocaleString()}đ</TableCell>
-                      <TableCell>{getStatusBadge(showtime.status)}</TableCell>
+                      <TableCell>{showtime.event?.name || 'N/A'}</TableCell>
+                      <TableCell>{showtime.room?.name || 'N/A'}</TableCell>
+                      <TableCell>{formatDateTime(showtime.startTime)}</TableCell>
+                      <TableCell>{showtime.priceVip.toLocaleString()} VNĐ</TableCell>
+                      <TableCell>{showtime.priceNormal.toLocaleString()} VNĐ</TableCell>
+                      <TableCell>{showtime.priceEconomy.toLocaleString()} VNĐ</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -373,15 +243,12 @@ export default function AdminShowtimesPage() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Xác nhận xóa xuất chiếu</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Bạn có chắc chắn muốn xóa xuất chiếu "{showtime.playTitle}" vào {showtime.date}{" "}
-                                    {showtime.time}? Hành động này không thể hoàn tác.
+                                    Bạn có chắc chắn muốn xóa xuất chiếu này không? Hành động này không thể hoàn tác.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeleteShowtime(showtime.id, showtime.playTitle)}
-                                  >
+                                  <AlertDialogAction onClick={() => handleDeleteShowtime(showtime.id)}>
                                     Xóa
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -399,17 +266,27 @@ export default function AdminShowtimesPage() {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Hiển thị {filteredShowtimes.length} trên tổng số {showtimes.length} xuất chiếu
+            Hiển thị {showtimes.length} trên tổng số {totalItems} xuất chiếu
           </p>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" disabled>
-              Trước
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={!hasPreviousPage}
+            >
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm">
-              1
-            </Button>
-            <Button variant="outline" size="sm">
-              Sau
+            <div className="text-sm">
+              Trang {currentPage} / {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={!hasNextPage}
+            >
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </CardFooter>

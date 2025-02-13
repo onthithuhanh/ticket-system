@@ -1,43 +1,38 @@
+"use client"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CalendarDays, MapPin, Clock } from "lucide-react"
+import { CalendarDays, MapPin, Clock, Users, Info } from "lucide-react"
+import { showtimesApi, Showtime } from "@/lib/api/showtimes"
 
 export function FeaturedEvents() {
-  // Dữ liệu mẫu cho các sự kiện nổi bật
-  const events = [
-    {
-      id: 1,
-      title: "Vở Kịch: Lôi Vũ",
-      description: "Một vở kịch cảm động về tình yêu và sự hy sinh",
-      date: "20/06/2023",
-      time: "19:30",
-      location: "Sân khấu chính",
-      category: "Kịch",
-      image: "https://nld.mediacdn.vn/2020/3/2/13-kich-15831592557842103318677.jpg",
-    },
-    {
-      id: 2,
-      title: "Hòa Nhạc Mùa Hè",
-      description: "Đêm nhạc cổ điển với những tác phẩm nổi tiếng",
-      date: "25/06/2023",
-      time: "20:00",
-      location: "Sân khấu ngoài trời",
-      category: "Âm nhạc",
-      image: "https://nld.mediacdn.vn/2020/3/2/13-kich-15831592557842103318677.jpg",
-    },
-    {
-      id: 3,
-      title: "Múa Ballet: Hồ Thiên Nga",
-      description: "Tác phẩm múa ballet kinh điển",
-      date: "30/06/2023",
-      time: "19:00",
-      location: "Sân khấu chính",
-      category: "Múa",
-      image: "https://nld.mediacdn.vn/2020/3/2/13-kich-15831592557842103318677.jpg",
-    },
-  ]
+  const [showtimes, setShowtimes] = useState<Showtime[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchShowtimes = async () => {
+      try {
+        const response = await showtimesApi.getShowtimes({
+          pageIndex: 1,
+          pageSize: 3,
+          StartTimeFrom: new Date().toISOString().split('T')[0]
+        })
+        setShowtimes(response.contends)
+      } catch (error) {
+        console.error("Error fetching showtimes:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchShowtimes()
+  }, [])
+
+  if (loading) {
+    return <div className="text-center py-8">Đang tải...</div>
+  }
 
   return (
     <section className="w-full py-12 md:py-24 lg:py-32">
@@ -51,41 +46,80 @@ export function FeaturedEvents() {
           </div>
         </div>
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:grid-cols-3">
-          {events.map((event) => (
-            <Card key={event.id} className="overflow-hidden">
-              <img
-                src={event.image || "/placeholder.svg"}
-                alt={event.title}
-                width={600}
-                height={400}
-                className="aspect-video object-cover"
-              />
+          {showtimes.map((showtime) => (
+            <Card key={showtime.id} className="overflow-hidden">
+              {showtime.event?.eventImages?.[0]?.imageUrl && (
+                <img
+                  src={showtime.event.eventImages[0].imageUrl}
+                  alt={showtime.event.name}
+                  width={600}
+                  height={400}
+                  className="aspect-video object-cover"
+                />
+              )}
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <Badge>{event.category}</Badge>
+                  <Badge>{showtime.event?.category}</Badge>
+                  {showtime.event?.isCancelled && (
+                    <Badge variant="destructive">Đã Hủy</Badge>
+                  )}
                 </div>
-                <CardTitle className="line-clamp-1">{event.title}</CardTitle>
-                <CardDescription className="line-clamp-2">{event.description}</CardDescription>
+                <CardTitle className="line-clamp-1">{showtime.event?.name}</CardTitle>
+                <CardDescription className="line-clamp-2">
+                  {showtime.event?.shortDescription}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col space-y-2 text-sm">
                   <div className="flex items-center">
                     <CalendarDays className="mr-2 h-4 w-4 opacity-70" />
-                    <span>{event.date}</span>
+                    <span>{new Date(showtime.startTime).toLocaleDateString('vi-VN')}</span>
                   </div>
                   <div className="flex items-center">
                     <Clock className="mr-2 h-4 w-4 opacity-70" />
-                    <span>{event.time}</span>
+                    <span>{new Date(showtime.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                   <div className="flex items-center">
                     <MapPin className="mr-2 h-4 w-4 opacity-70" />
-                    <span>{event.location}</span>
+                    <span>{showtime.room?.location}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Users className="mr-2 h-4 w-4 opacity-70" />
+                    <span>Sức chứa: {showtime.room?.capacity} người</span>
+                  </div>
+                  {showtime.room?.roomAmenities && showtime.room.roomAmenities.length > 0 && (
+                    <div className="flex items-center">
+                      <Info className="mr-2 h-4 w-4 opacity-70" />
+                      <span className="flex flex-wrap gap-1">
+                        {showtime.room.roomAmenities.map((amenity) => (
+                          <Badge key={amenity.amenityId} variant="secondary" className="text-xs">
+                            {amenity.amenity.name}
+                          </Badge>
+                        ))}
+                      </span>
+                    </div>
+                  )}
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                    <div className="rounded bg-gray-100 p-1 text-center">
+                      <div className="font-semibold">VIP</div>
+                      <div>{showtime.priceVip.toLocaleString('vi-VN')}đ</div>
+                    </div>
+                    <div className="rounded bg-gray-100 p-1 text-center">
+                      <div className="font-semibold">Thường</div>
+                      <div>{showtime.priceNormal.toLocaleString('vi-VN')}đ</div>
+                    </div>
+                    <div className="rounded bg-gray-100 p-1 text-center">
+                      <div className="font-semibold">Tiết kiệm</div>
+                      <div>{showtime.priceEconomy.toLocaleString('vi-VN')}đ</div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
               <CardFooter>
-                <Link href={`/events/${event.id}`} className="w-full">
-                  <Button className="w-full">Đặt Vé</Button>
+                <Link href={`/events/${showtime.eventId}`} className="w-full">
+                  <Button className="w-full"  >
+                    {showtime.event?.isCancelled ? 'Đã Hủy' : 'Đặt Vé'}
+                  </Button>
                 </Link>
               </CardFooter>
             </Card>
@@ -94,7 +128,7 @@ export function FeaturedEvents() {
         <div className="flex justify-center">
           <Link href="/events">
             <Button variant="outline" size="lg">
-              Xem Tất Cả Sự Kiện
+              Xem Tất Cả Lịch Chiếu
             </Button>
           </Link>
         </div>

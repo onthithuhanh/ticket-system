@@ -1,5 +1,54 @@
 import { api } from "./api"
 
+export interface EventImage {
+  id: number
+  imageUrl: string
+}
+
+export interface RoomAmenity {
+  amenityId: number
+  amenity: {
+    id: number
+    name: string
+  }
+}
+
+export interface Event {
+  id: number
+  name: string
+  duration: number
+  isCancelled: boolean
+  shortDescription: string
+  detailedDescription: string
+  director: string
+  actors: string
+  thumbnail: string
+  category: string
+  eventImages: EventImage[]
+  createdBy: string
+  createdAt: string
+  modifiedBy: string
+  modifiedAt: string
+  deletedBy: string | null
+  deletedAt: string | null
+}
+
+export interface Room {
+  id: number
+  name: string
+  description: string
+  location: string
+  capacity: number
+  length: number
+  width: number
+  height: number
+  status: string
+  category: string
+  numberSeatsOfRow: number
+  roomImages: any[]
+  roomAmenities: RoomAmenity[]
+}
+
 export interface Showtime {
   id: number
   startTime: string
@@ -8,9 +57,8 @@ export interface Showtime {
   priceEconomy: number
   eventId: number
   roomId: number
-  // Add other showtime properties if available from API
-  event?: { id: number; name: string; startTime: string; duration: number; category: string; thumbnail: string }
-  room?: { id: number; name: string; capacity: number }
+  event?: Event
+  room?: Room
 }
 
 export interface GetShowtimesParams {
@@ -18,6 +66,7 @@ export interface GetShowtimesParams {
   eventId?: number
   roomId?: number
   date?: string
+  StartTimeFrom?: string
   pageIndex: number
   pageSize: number
 }
@@ -52,7 +101,12 @@ export interface UpdateShowtimeParams {
 
 export const showtimesApi = {
   getShowtimes: async (params: GetShowtimesParams): Promise<GetShowtimesResponse> => {
-    const response = await api.get("/Schedules", { params })
+    const response = await api.get("/Schedules", { 
+      params: {
+        ...params,
+        StartTimeFrom: params.StartTimeFrom || new Date().toISOString().split('T')[0] // Default to today if not provided
+      }
+    })
     return response.data
   },
 

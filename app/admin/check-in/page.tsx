@@ -98,10 +98,33 @@ export default function CheckInPage() {
   const handleCheckIn = async (ticketId: number) => {
     try {
       setIsCheckingIn(true)
-      await api.post(`/Tickets/${ticketId}/check-in`)
+      await api.put(`/CheckIns/ticket/${ticketId}`)
       toast({
         title: "Thành công",
         description: "Đã xác nhận sử dụng vé",
+      })
+      // Refresh booking data
+      handleSearch()
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể xác nhận sử dụng vé",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCheckingIn(false)
+    }
+  }
+
+  const handleCheckInAll = async () => {
+    if (!booking) return
+
+    try {
+      setIsCheckingIn(true)
+      await api.put(`/CheckIns/booking/${booking.id}`)
+      toast({
+        title: "Thành công",
+        description: "Đã xác nhận sử dụng tất cả vé",
       })
       // Refresh booking data
       handleSearch()
@@ -188,7 +211,19 @@ export default function CheckInPage() {
                     </div>
 
                     <div className="space-y-4">
-                      <h3 className="font-semibold">Danh sách vé</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold">Danh sách vé</h3>
+                        {booking.tickets.some(ticket => !ticket.isUsed) && (
+                          <Button
+                            onClick={handleCheckInAll}
+                            disabled={isCheckingIn}
+                            className="gap-2"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Check-in tất cả
+                          </Button>
+                        )}
+                      </div>
                       {booking.tickets.map((ticket) => (
                         <div
                           key={ticket.id}

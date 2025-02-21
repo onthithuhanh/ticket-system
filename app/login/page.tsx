@@ -14,6 +14,7 @@ import * as z from "zod"
 import { useState } from "react"
 import { toast } from "sonner" 
 import { signIn } from "next-auth/react"
+import { useToast } from "@/hooks/use-toast"
 const loginSchema = z.object({
   username: z.string().min(1, "Tên đăng nhập không được để trống"),
   password: z.string().min(1, "Mật khẩu không được để trống"),
@@ -24,7 +25,7 @@ type LoginFormData = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-
+  const { toast } = useToast()
   const {
     register,
     handleSubmit,
@@ -44,8 +45,11 @@ export default function LoginPage() {
       const response = await authApi.login(data)
       console.log(response)
       localStorage.setItem("user", JSON.stringify(response)) 
-      toast.success("Đăng nhập thành công") 
-      
+ 
+      toast({
+        title: "Đăng nhập thành công",
+        description: "Bạn có thể sử dụng dịch vụ",
+      })
       // Check if user has admin role
       if (response.userName?.includes("admin")) {
         router.push("/admin/events")
@@ -53,7 +57,10 @@ export default function LoginPage() {
         router.push("/")
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Đăng nhập thất bại")
+      toast({
+        title: "Đăng nhập không  thành công",
+        description: "Tài khoản hoặc mật khẩu sai",
+      })
     } finally {
       setIsLoading(false)
     }

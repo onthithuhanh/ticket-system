@@ -11,7 +11,7 @@ import { authApi } from "@/lib/api/auth"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { useState } from "react" 
+import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 
 const registerSchema = z.object({
@@ -56,9 +56,11 @@ export default function RegisterPage() {
       })
       router.push("/login")
     } catch (error: any) {
+      console.log(error?.response?.data.detail);
+
       toast({
         title: "Đăng ký thất bại",
-        description: error.response?.data?.message || "Đăng ký thất bại",
+        description: error?.response?.data.detail || "Đăng ký thất bại",
       })
     } finally {
       setIsLoading(false)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { MainNav } from "@/components/main-nav"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,8 @@ import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { eventsApi } from "@/lib/api/events"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast" 
+import { useDebounce } from "../hooks/use-debounce"
 
 export default function EventsPage() {
   const { toast } = useToast()
@@ -23,31 +24,39 @@ export default function EventsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const pageSize = 6
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await eventsApi.getEvents({
-          search,
-          pageIndex,
-          pageSize,
-          category: category !== "all" ? category : undefined,
-          isCancelled: false
-        })
-        setEvents(response.contends || [])
-        setTotalPages(response.totalPages || 1)
-      } catch (error: any) {
-        toast({
-          title: "Lỗi",
-          description: error.response?.data?.message || "Không thể tải danh sách sự kiện",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  const debouncedSearch = useDebounce(search, 500)
 
+  const fetchEvents = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      const response = await eventsApi.getEvents({
+        search: debouncedSearch,
+        pageIndex,
+        pageSize,
+        category: category !== "all" ? category : undefined,
+        isCancelled: false
+      })
+      setEvents(response.contends || [])
+      setTotalPages(response.totalPages || 1)
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Không thể tải danh sách sự kiện",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [debouncedSearch, category, pageIndex, toast])
+
+  useEffect(() => {
     fetchEvents()
-  }, [search, category, pageIndex, toast])
+  }, [fetchEvents])
+
+  // Reset to first page when search or category changes
+  useEffect(() => {
+    setPageIndex(1)
+  }, [debouncedSearch, category])
 
   const truncateText = (text: string, maxLength: number) => {
     if (text.length <= maxLength) return text
@@ -77,10 +86,12 @@ export default function EventsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Tất cả</SelectItem>
-                      <SelectItem value="drama">Kịch</SelectItem>
-                      <SelectItem value="music">Âm nhạc</SelectItem>
-                      <SelectItem value="dance">Múa</SelectItem>
-                      <SelectItem value="circus">Xiếc</SelectItem>
+                      <SelectItem value="Drame">Kịch</SelectItem>
+                      <SelectItem value="Music">Âm nhạc</SelectItem>
+                      <SelectItem value="Dance">Múa</SelectItem>
+                      <SelectItem value="Circus">Xiếc</SelectItem>
+                      <SelectItem value="Comedy">Hài kịch</SelectItem>
+                      <SelectItem value="Opera">Opera</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -102,31 +113,55 @@ export default function EventsPage() {
             ) : (
               <>
                 <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {events.map((event) => (
-                    <Link key={event.id} href={`/events/${event.id}`}>
-                      <Card className="overflow-hidden transition-colors hover:bg-accent">
-                        <img
-                          src={event.thumbnail}
-                          alt={event.name}
-                          className="h-[200px] w-full object-cover"
-                        />
-                        <CardContent className="p-4">
-                          <h3 className="text-lg font-semibold truncate" title={event.name}>
-                            {event.name}
-                          </h3>
-                          <p className="mt-2 text-sm text-muted-foreground line-clamp-2" title={event.shortDescription}>
-                            {event.shortDescription}
-                          </p>
-                          <div className="mt-4 flex items-center justify-between">
-                           <div></div>
-                            <Button variant="outline" size="sm">
-                              Xem chi tiết
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  ))}
+                  {events.length === 0 ? (
+                    <div className="col-span-full text-center py-12">
+                      <p className="text-muted-foreground">Không tìm thấy sự kiện nào</p>
+                    </div>
+                  ) : (
+                    events.map((event) => (
+                      <Link key={event.id} href={`/events/${event.id}`}>
+                        <Card className="overflow-hidden transition-colors hover:bg-accent">
+                          <img
+                            src={event.thumbnail}
+                            alt={event.name}
+                            className="h-[200px] w-full object-cover"
+                          />
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <Badge variant="secondary">{event.category}</Badge>
+                              {event.isCancelled && (
+                                <Badge variant="destructive">Đã hủy</Badge>
+                              )}
+                            </div>
+                            <h3 className="text-lg font-semibold truncate" title={event.name}>
+                              {event.name}
+                            </h3>
+                            <p className="mt-2 text-sm text-muted-foreground line-clamp-2" title={event.shortDescription}>
+                              {event.shortDescription}
+                            </p>
+                            <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                <span>{event.duration} phút</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <CalendarDays className="h-4 w-4" />
+                                <span>{new Date(event.createdAt).toLocaleDateString('vi-VN')}</span>
+                              </div>
+                            </div>
+                            <div className="mt-4 flex items-center justify-between">
+                              <div className="text-sm text-muted-foreground">
+                                Đạo diễn: {event.director}
+                              </div>
+                              <Button variant="outline" size="sm">
+                                Xem chi tiết
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))
+                  )}
                 </div>
                 {totalPages > 1 && (
                   <div className="mt-8 flex justify-center gap-2">

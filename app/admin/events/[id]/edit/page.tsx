@@ -36,6 +36,13 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     thumbnail: "",
     category: "Drame",
     eventImages: [] as { imageUrl: string }[],
+    id: 0,
+    createdBy: "",
+    createdAt: "",
+    modifiedBy: "",
+    modifiedAt: "",
+    deletedBy: null as string | null,
+    deletedAt: null as string | null
   })
   const [mainImage, setMainImage] = useState<ImagePreview | null>(null)
   const [additionalImages, setAdditionalImages] = useState<ImagePreview[]>([])
@@ -58,6 +65,13 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
           thumbnail: response.thumbnail,
           category: response.category,
           eventImages: response.eventImages || [],
+          id: response.id,
+          createdBy: response.createdBy,
+          createdAt: response.createdAt,
+          modifiedBy: response.modifiedBy,
+          modifiedAt: response.modifiedAt,
+          deletedBy: response.deletedBy,
+          deletedAt: response.deletedAt
         })
         setExistingImages(response.eventImages || [])
       } catch (error: any) {
@@ -144,16 +158,23 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       const newEventImages = await uploadMultipleImages(
         additionalImages.map(img => img.file),
         "events"
-      ).then(urls => urls.map((url, index) => ({ id: existingImages.length + index + 1, imageUrl: url })))
+      ).then(urls => urls.map(url => ({ imageUrl: url })))
 
       const data = {
-        ...formData,
-        duration: parseInt(formData.duration),
+        name: formData.name,
+        duration: 0,
+        isCancelled: formData.isCancelled,
+        shortDescription: formData.shortDescription,
+        detailedDescription: formData.detailedDescription,
+        director: formData.director,
+        actors: formData.actors,
         thumbnail: thumbnailUrl,
+        category: formData.category,
         eventImages: [
-          ...existingImages.map((img, index) => ({ ...img, id: index + 1 })),
+          ...existingImages,
           ...newEventImages
         ],
+        id: formData.id
       }
 
       await eventsApi.updateEvent(parseInt(id), data)

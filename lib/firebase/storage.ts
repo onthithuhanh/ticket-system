@@ -2,7 +2,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from './config';
  
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp','image/jpg','image/gif','image/avif',];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const validateFile = (file: File) => {

@@ -6,8 +6,53 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { authApi } from "@/lib/api/auth"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { useState } from "react"
+import { toast } from "sonner" 
+import { signIn } from "next-auth/react"
+const loginSchema = z.object({
+  username: z.string().min(1, "Tên đăng nhập không được để trống"),
+  password: z.string().min(1, "Mật khẩu không được để trống"),
+})
+
+type LoginFormData = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  })
+
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      setIsLoading(true)
+      const response = await authApi.login(data)
+      console.log(response)
+      localStorage.setItem("user", JSON.stringify(response)) 
+      toast.success("Đăng nhập thành công") 
+      router.push("/") // Chuyển hướng sau khi đăng nhập thành công
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Đăng nhập thất bại")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background">
@@ -25,16 +70,36 @@ export default function LoginPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4">
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="Nhập email của bạn" />
+                  <Label htmlFor="username">Tên đăng nhập</Label>
+                  <Input 
+                    id="username" 
+                    {...register("username")}
+                    placeholder="Nhập tên đăng nhập" 
+                  />
+                  {errors.username && (
+                    <p className="text-sm text-red-500">{errors.username.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Mật khẩu</Label>
-                  <Input id="password" type="password" placeholder="Nhập mật khẩu" />
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    {...register("password")}
+                    placeholder="Nhập mật khẩu" 
+                  />
+                  {errors.password && (
+                    <p className="text-sm text-red-500">{errors.password.message}</p>
+                  )}
                 </div>
-                <Button className="w-full">Đăng nhập</Button>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
+                </Button>
                 <p className="text-center text-sm text-muted-foreground">
                   Chưa có tài khoản?{" "}
                   <Link href="/register" className="text-primary hover:underline">

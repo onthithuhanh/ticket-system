@@ -58,6 +58,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: TicketCheck,
       label: "Quản lý vé",
       href: "/admin/tickets",
+    },    {
+      icon: TicketCheck,
+      label: "Quản giao dịch",
+      href: "/admin/transactions",
     },  
         {
       icon: Calendar,
@@ -68,6 +72,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: Calendar,
       label: "Quản lý xuất chiếu",
       href: "/admin/showtimes",
+    },
+    {
+      icon: Calendar,
+      label: "Quản lý tiện nghi",
+      href: "/admin/amenities",
     },
     {
       icon: Settings,

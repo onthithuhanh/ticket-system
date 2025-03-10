@@ -1,9 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Theater, ChevronLeft, ChevronRight } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { eventsApi } from "@/lib/api/events"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,100 +19,168 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { CalendarDays, MoreHorizontal, Plus, Search, Edit, Trash2 } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
-import { showApi, Show } from "@/lib/api"
-import { format } from "date-fns"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
+interface Event {
+  id: number
+  name: string
+  duration: number
+  isCancelled: boolean
+  shortDescription: string
+  detailedDescription: string
+  director: string
+  actors: string
+  thumbnail: string
+  category: string
+  eventImages: { id: number; imageUrl: string }[]
+  createdBy: string
+  createdAt: string
+  modifiedBy: string
+  modifiedAt: string
+  deletedBy: string | null
+  deletedAt: string | null
+}
+
+interface PaginatedResponse {
+  page: number
+  size: number
+  totalPages: number
+  totalItems: number
+  hasPreviousPage: boolean
+  hasNextPage: boolean
+  contends: Event[]
+}
 
 export default function AdminEventsPage() {
   const { toast } = useToast()
+  const [events, setEvents] = useState<Event[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [events, setEvents] = useState<Show[]>([])
-  const [loading, setLoading] = useState(true)
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(8)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const [hasPreviousPage, setHasPreviousPage] = useState(false)
+  const [hasNextPage, setHasNextPage] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchEvents()
+    }, 500) // Debounce search for 500ms
+
+    return () => clearTimeout(timer)
+  }, [currentPage, searchTerm, categoryFilter])
 
   const fetchEvents = async () => {
     try {
-      const data = await showApi.getAllShows()
-      setEvents(data)
-    } catch (error) {
+      const response = await eventsApi.getEvents({
+        search: searchTerm,
+        pageIndex: currentPage,
+        pageSize,
+        category: categoryFilter
+      })
+      setEvents(response.contends)
+      setTotalPages(response.totalPages)
+      setTotalItems(response.totalItems)
+      setHasPreviousPage(response.hasPreviousPage)
+      setHasNextPage(response.hasNextPage)
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to fetch events",
+        title: "Lỗi",
+        description: error.response?.data?.message || "Đã xảy ra lỗi khi tải danh sách vở kịch",
         variant: "destructive",
       })
+      setEvents([])
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  const handleDelete = async (_id: string) => {
-    if (window.confirm('Are you sure you want to delete this event?')) {
-      try {
-        await showApi.deleteShow(_id)
-        toast({
-          title: "Success",
-          description: "Event deleted successfully",
-        })
-        fetchEvents()
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete event",
-          variant: "destructive",
-        })
-      }
+  const handleDeleteEvent = async (id: number, name: string) => {
+    try {
+      await eventsApi.deleteEvent(id)
+      toast({
+        title: "Thành công",
+        description: `Đã xóa vở kịch "${name}"`,
+      })
+      fetchEvents()
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Đã xảy ra lỗi khi xóa vở kịch",
+        variant: "destructive",
+      })
     }
   }
 
-  useEffect(() => {
-    fetchEvents()
-  }, [])
-
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || event.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "upcoming":
-        return <Badge className="bg-blue-500">Sắp diễn ra</Badge>
-      case "ongoing":
-        return <Badge className="bg-green-500">Đang diễn ra</Badge>
-      case "completed":
-        return <Badge className="bg-gray-500">Đã kết thúc</Badge>
-      case "cancelled":
-        return <Badge className="bg-red-500">Đã hủy</Badge>
-      default:
-        return <Badge>Không xác định</Badge>
-    }
+  const getStatusBadge = (isCancelled: boolean) => {
+    return isCancelled ? (
+      <Badge className="bg-red-500">Đã ẩn</Badge>
+    ) : (
+      <Badge className="bg-green-500">Hiệu lực</Badge>
+    )
   }
 
-  if (loading) {
-    return <div>Loading...</div>
-  }
+  // Thống kê
+  const activeEvents = events.filter((e) => !e.isCancelled).length
+  const cancelledEvents = events.filter((e) => e.isCancelled).length
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Quản lý sự kiện</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Quản lý vở kịch</h1>
         <Link href="/admin/events/create">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Thêm sự kiện mới
+            Thêm vở kịch mới
           </Button>
         </Link>
       </div>
+
+      {/* Thống kê tổng quan */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tổng số vở kịch</CardTitle>
+            <Theater className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalItems}</div>
+          </CardContent>
+        </Card>
+        {/* <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Đang diễn</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{activeEvents}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Đã hủy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{cancelledEvents}</div>
+          </CardContent>
+        </Card> */}
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>Danh sách sự kiện</CardTitle>
-          <CardDescription>Quản lý tất cả các sự kiện của nhà hát</CardDescription>
+          <CardTitle>Danh sách vở kịch</CardTitle>
+          <CardDescription>Quản lý tất cả vở kịch trong hệ thống</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-4 md:flex-row">
@@ -113,22 +188,21 @@ export default function AdminEventsPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Tìm kiếm sự kiện..."
+                placeholder="Tìm kiếm vở kịch..."
                 className="w-full pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Trạng thái" />
+                <SelectValue placeholder="Thể loại" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="upcoming">Sắp diễn ra</SelectItem>
-                <SelectItem value="ongoing">Đang diễn ra</SelectItem>
-                <SelectItem value="completed">Đã kết thúc</SelectItem>
-                <SelectItem value="cancelled">Đã hủy</SelectItem>
+                <SelectItem value="all">Tất cả thể loại</SelectItem>
+                <SelectItem value="Drame">Kịch</SelectItem>
+                <SelectItem value="Comedy">Hài kịch</SelectItem>
+                <SelectItem value="Musical">Nhạc kịch</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -136,53 +210,96 @@ export default function AdminEventsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tên sự kiện</TableHead>
-                  <TableHead>Ngày</TableHead>
-                  <TableHead>Địa điểm</TableHead>
+                  <TableHead>Vở kịch</TableHead>
+                  <TableHead>Thể loại</TableHead>
+                  <TableHead>Đạo diễn</TableHead>
+                  <TableHead>Thời lượng</TableHead>
                   <TableHead>Trạng thái</TableHead>
-                  <TableHead>Vé đã bán</TableHead>
                   <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEvents.length === 0 ? (
+                {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center">
-                      Không tìm thấy sự kiện nào
+                      Đang tải...
+                    </TableCell>
+                  </TableRow>
+                ) : events.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center">
+                      Không tìm thấy vở kịch nào
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredEvents.map((event) => (
+                  events.map((event) => (
                     <TableRow key={event.id}>
-                      <TableCell className="font-medium">{event.title}</TableCell>
                       <TableCell>
-                        <div className="flex items-center">
-                          <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
-                          {format(new Date(event.date), 'MMM dd, yyyy HH:mm')}
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={event.thumbnail || "/placeholder.svg"}
+                            alt={event.name}
+                            className="h-12 w-12 rounded object-cover"
+                          />
+                          <div>
+                            <div className="font-medium">{event.name}</div>
+                            <div className="text-sm text-muted-foreground line-clamp-1">
+                              {event.shortDescription}
+                            </div>
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell>{event.location}</TableCell>
-                      <TableCell>{getStatusBadge(event.status)}</TableCell>
-                      <TableCell>
-                        {event.ticketsSold}/{event.totalTickets} (
-                        {Math.round((event.ticketsSold / event.totalTickets) * 100)}
-                        %)
-                      </TableCell>
+                      <TableCell>{event.category}</TableCell>
+                      <TableCell>{event.director}</TableCell>
+                      <TableCell>{event.duration} phút</TableCell>
+                      <TableCell>{getStatusBadge(event.isCancelled)}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex space-x-2">
-                          <Link href={`/admin/events/${event.id}/edit`}>
-                            <Button variant="outline" size="icon">
-                              <Edit className="h-4 w-4" />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Mở menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
                             </Button>
-                          </Link>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleDelete(event.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                            <DropdownMenuItem>
+                              <Link href={`/admin/events/${event.id}`} className="flex w-full items-center">
+                                <Eye className="mr-2 h-4 w-4" />
+                                Xem chi tiết
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Link href={`/admin/events/${event.id}/edit`} className="flex w-full items-center">
+                                <Edit className="mr-2 h-4 w-4" />
+                                Chỉnh sửa
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Xóa vở kịch
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Xác nhận xóa vở kịch</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Bạn có chắc chắn muốn xóa vở kịch "{event.name}"? Hành động này không thể hoàn tác.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteEvent(event.id, event.name)}>
+                                    Xóa
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -193,17 +310,27 @@ export default function AdminEventsPage() {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Hiển thị {filteredEvents.length} trên tổng số {events.length} sự kiện
+            Hiển thị {events.length} trên tổng số {totalItems} vở kịch
           </p>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" disabled>
-              Trước
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={!hasPreviousPage}
+            >
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm">
-              1
-            </Button>
-            <Button variant="outline" size="sm">
-              Sau
+            <div className="text-sm">
+              Trang {currentPage} / {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={!hasNextPage}
+            >
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </CardFooter>

@@ -1,14 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Search, UserPlus } from "lucide-react"
+import { Search, UserPlus, ChevronLeft, ChevronRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { usersApi, User, GetUsersResponse } from "@/lib/api/users"
 import {
   Dialog,
   DialogContent,
@@ -18,230 +19,165 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { TableCell } from "@/components/ui/table"
 
 export default function AdminUsersPage() {
   const { toast } = useToast()
+  const [users, setUsers] = useState<User[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [newUser, setNewUser] = useState({
-    name: "",
+    userName: "",
     email: "",
-    phone: "",
-    role: "",
+    phoneNumber: "",
+    fullName: "",
+    password: "",
+    roleIds: [] as string[],
   })
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(20)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const [hasPreviousPage, setHasPreviousPage] = useState(false)
+  const [hasNextPage, setHasNextPage] = useState(false)
 
-  // Dữ liệu mẫu cho người dùng
-  const users = [
-    {
-      id: 1,
-      name: "Nguyễn Thị Hương",
-      email: "huong.nguyen@example.com",
-      phone: "0912345678",
-      role: "customer",
-      status: "active",
-      joinDate: "15/01/2023",
-      lastLogin: "20/06/2023",
-      totalTickets: 12,
-      totalSpent: 3600000,
-      avatar: "https://cdn11.dienmaycholon.vn/filewebdmclnew/public/userupload/files/Image%20FP_2024/avatar-cute-3.jpg",
-    },
-    {
-      id: 2,
-      name: "Trần Văn Lâm",
-      email: "lam.tran@example.com",
-      phone: "0987654321",
-      role: "customer",
-      status: "active",
-      joinDate: "20/02/2023",
-      lastLogin: "19/06/2023",
-      totalTickets: 8,
-      totalSpent: 2400000,
-      avatar: "https://cdn11.dienmaycholon.vn/filewebdmclnew/public/userupload/files/Image%20FP_2024/avatar-cute-3.jpg",
-    },
-    {
-      id: 3,
-      name: "Phạm Minh Hiếu",
-      email: "hieu.pham@example.com",
-      phone: "0901234567",
-      role: "employee",
-      status: "active",
-      joinDate: "10/03/2023",
-      lastLogin: "21/06/2023",
-      totalTickets: 0,
-      totalSpent: 0,
-      avatar: "https://cdn11.dienmaycholon.vn/filewebdmclnew/public/userupload/files/Image%20FP_2024/avatar-cute-3.jpg",
-    },
-    {
-      id: 4,
-      name: "Lê Thị Mai",
-      email: "mai.le@example.com",
-      phone: "0934567890",
-      role: "customer",
-      status: "inactive",
-      joinDate: "05/04/2023",
-      lastLogin: "10/05/2023",
-      totalTickets: 3,
-      totalSpent: 900000,
-      avatar: "https://cdn11.dienmaycholon.vn/filewebdmclnew/public/userupload/files/Image%20FP_2024/avatar-cute-3.jpg",
-    },
-    {
-      id: 5,
-      name: "Vũ Đức Anh",
-      email: "anh.vu@example.com",
-      phone: "0945678901",
-      role: "manager",
-      status: "active",
-      joinDate: "01/01/2023",
-      lastLogin: "21/06/2023",
-      totalTickets: 0,
-      totalSpent: 0,
-      avatar: "https://cdn11.dienmaycholon.vn/filewebdmclnew/public/userupload/files/Image%20FP_2024/avatar-cute-3.jpg",
-    },
-  ]
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchUsers()
+    }, 500)
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = roleFilter === "all" || user.role === roleFilter
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter
-    return matchesSearch && matchesRole && matchesStatus
-  })
+    return () => clearTimeout(timer)
+  }, [currentPage, searchTerm, roleFilter, statusFilter])
 
-  const handleCreateUser = () => {
-    toast({
-      title: "Tạo người dùng thành công",
-      description: `Đã tạo tài khoản cho ${newUser.name}`,
-    })
-    setIsCreateDialogOpen(false)
-    setNewUser({ name: "", email: "", phone: "", role: "" })
-  }
-
-  const handleDeleteUser = (id: number, name: string) => {
-    toast({
-      title: "Đã xóa người dùng",
-      description: `Đã xóa tài khoản của ${name}`,
-    })
-  }
-
-  const handleToggleStatus = (id: number, name: string, currentStatus: string) => {
-    const newStatus = currentStatus === "active" ? "inactive" : "active"
-    toast({
-      title: "Cập nhật trạng thái",
-      description: `Đã ${newStatus === "active" ? "kích hoạt" : "vô hiệu hóa"} tài khoản của ${name}`,
-    })
-  }
-
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case "admin":
-        return <Badge className="bg-red-500">Quản trị viên</Badge>
-      case "manager":
-        return <Badge className="bg-purple-500">Quản lý</Badge>
-      case "employee":
-        return <Badge className="bg-blue-500">Nhân viên</Badge>
-      case "customer":
-        return <Badge className="bg-green-500">Khách hàng</Badge>
-      default:
-        return <Badge>Không xác định</Badge>
+  const fetchUsers = async () => {
+    setIsLoading(true)
+    try {
+      const response: GetUsersResponse = await usersApi.getUsers({
+        pageIndex: currentPage,
+        pageSize,
+        Search: searchTerm || undefined,
+        Role: roleFilter === "all" ? "user" : roleFilter,
+        IsActive: statusFilter === "all" ? undefined : statusFilter === "active",
+      })
+      setUsers(response.contends)
+      setTotalPages(response.totalPages)
+      setTotalItems(response.totalItems)
+      setHasPreviousPage(response.hasPreviousPage)
+      setHasNextPage(response.hasNextPage)
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Đã xảy ra lỗi khi tải danh sách người dùng",
+        variant: "destructive",
+      })
+      setUsers([])
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-500">Hoạt động</Badge>
-      case "inactive":
-        return <Badge className="bg-gray-500">Không hoạt động</Badge>
-      case "suspended":
-        return <Badge className="bg-red-500">Bị khóa</Badge>
-      default:
-        return <Badge>Không xác định</Badge>
+  const handleCreateUser = async () => {
+    try {
+      await usersApi.createUser(newUser)
+      toast({
+        title: "Tạo người dùng thành công",
+        description: `Đã tạo tài khoản cho ${newUser.fullName || newUser.userName}`,
+      })
+      setIsCreateDialogOpen(false)
+      setNewUser({
+        userName: "",
+        email: "",
+        phoneNumber: "",
+        fullName: "",
+        password: "",
+        roleIds: [],
+      })
+      fetchUsers()
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Đã xảy ra lỗi khi tạo người dùng",
+        variant: "destructive",
+      })
     }
+  }
+
+  const handleDeleteUser = async (id: string, name: string) => {
+    try {
+      await usersApi.deleteUser(id)
+      toast({
+        title: "Đã xóa người dùng",
+        description: `Đã xóa tài khoản của ${name}`,
+      })
+      fetchUsers()
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Đã xảy ra lỗi khi xóa người dùng",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleToggleStatus = async (id: string, name: string, currentStatus: boolean) => {
+    try {
+      await usersApi.updateUser(id, { isActive: !currentStatus })
+      toast({
+        title: "Cập nhật trạng thái",
+        description: `Đã ${!currentStatus ? "kích hoạt" : "vô hiệu hóa"} tài khoản của ${name}`,
+      })
+      fetchUsers()
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Đã xảy ra lỗi khi cập nhật trạng thái người dùng",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const getRoleBadge = (roles: User["roles"]) => {
+    const roleNames = roles.map(role => role.name)
+    if (roleNames.includes("Admin")) {
+      return <Badge className="bg-red-500">Quản trị viên</Badge>
+    }
+    if (roleNames.includes("Staff")) {
+      return <Badge className="bg-blue-500">Nhân viên</Badge>
+    }
+    if (roleNames.includes("User")) {
+      return <Badge className="bg-green-500">Khách hàng</Badge>
+    }
+    return <Badge>Không xác định</Badge>
+  }
+
+  const getStatusBadge = (isActive: boolean) => {
+    return isActive ? (
+      <Badge className="bg-green-500">Hoạt động</Badge>
+    ) : (
+      <Badge className="bg-gray-500">Không hoạt động</Badge>
+    )
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Quản lý người dùng</h1>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Thêm người dùng
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Tạo người dùng mới</DialogTitle>
-              <DialogDescription>Nhập thông tin để tạo tài khoản người dùng mới</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Họ tên
-                </Label>
-                <Input
-                  id="name"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser((prev) => ({ ...prev, name: e.target.value }))}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser((prev) => ({ ...prev, email: e.target.value }))}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="phone" className="text-right">
-                  Điện thoại
-                </Label>
-                <Input
-                  id="phone"
-                  value={newUser.phone}
-                  onChange={(e) => setNewUser((prev) => ({ ...prev, phone: e.target.value }))}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="role" className="text-right">
-                  Vai trò
-                </Label>
-                <Select
-                  value={newUser.role}
-                  onValueChange={(value) => setNewUser((prev) => ({ ...prev, role: value }))}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Chọn vai trò" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="customer">Khách hàng</SelectItem>
-                    <SelectItem value="employee">Nhân viên</SelectItem>
-                    <SelectItem value="manager">Quản lý</SelectItem>
-                    <SelectItem value="admin">Quản trị viên</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit" onClick={handleCreateUser}>
-                Tạo tài khoản
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+       
       </div>
 
       <Card>
@@ -261,18 +197,7 @@ export default function AdminUsersPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Vai trò" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả vai trò</SelectItem>
-                <SelectItem value="customer">Khách hàng</SelectItem>
-                <SelectItem value="employee">Nhân viên</SelectItem>
-                <SelectItem value="manager">Quản lý</SelectItem>
-                <SelectItem value="admin">Quản trị viên</SelectItem>
-              </SelectContent>
-            </Select>
+      
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Trạng thái" />
@@ -281,7 +206,6 @@ export default function AdminUsersPage() {
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
                 <SelectItem value="active">Hoạt động</SelectItem>
                 <SelectItem value="inactive">Không hoạt động</SelectItem>
-                <SelectItem value="suspended">Bị khóa</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -292,58 +216,85 @@ export default function AdminUsersPage() {
                   <TableHead>Người dùng</TableHead>
                   <TableHead>Vai trò</TableHead>
                   <TableHead>Trạng thái</TableHead>
-                  <TableHead>Ngày tham gia</TableHead>
-                  <TableHead>Vé đã mua</TableHead>
-                  <TableHead>Tổng chi tiêu</TableHead>
+                  <TableHead>Ngày tạo</TableHead>
                   <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.length === 0 ? (
+                {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center">
+                    <TableCell colSpan={5} className="text-center">
+                      Đang tải...
+                    </TableCell>
+                  </TableRow>
+                ) : users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center">
                       Không tìm thấy người dùng nào
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user) => (
+                  users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <img
-                            src={user.avatar || "/placeholder.svg"}
-                            alt={user.name}
-                            className="h-10 w-10 rounded-full object-cover"
-                          />
+                          {user.avatarUrl && (
+                            <img
+                              src={user.avatarUrl}
+                              alt={user.userName}
+                              className="h-10 w-10 rounded-full object-cover"
+                            />
+                          )}
                           <div>
-                            <div className="font-medium">{user.name}</div>
-                            <div className="text-sm text-muted-foreground">{user.email}</div>
-                            <div className="text-sm text-muted-foreground">{user.phone}</div>
+                            <div className="font-medium">{user.fullName || user.userName}</div>
+                            <div className="text-sm text-muted-foreground">{user.email || "Chưa có email"}</div>
+                            {user.phoneNumber && <div className="text-sm text-muted-foreground">{user.phoneNumber}</div>}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{getRoleBadge(user.role)}</TableCell>
-                      <TableCell>{getStatusBadge(user.status)}</TableCell>
+                      <TableCell>{getRoleBadge(user.roles)}</TableCell>
+                      <TableCell>{getStatusBadge(user.isActive)}</TableCell>
                       <TableCell>
                         <div>
-                          <div className="text-sm">{user.joinDate}</div>
-                          <div className="text-xs text-muted-foreground">Đăng nhập cuối: {user.lastLogin}</div>
+                          <div className="text-sm">{new Date(user.createdAt).toLocaleDateString("vi-VN")}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Cập nhật: {new Date(user.modifiedAt).toLocaleDateString("vi-VN")}
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-center">{user.totalTickets}</TableCell>
-                      <TableCell>{user.totalSpent.toLocaleString()}đ</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleToggleStatus(user.id, user.name, user.status)}
+                            onClick={() => handleToggleStatus(user.id, user.fullName || user.userName, user.isActive)}
                           >
-                            {user.status === "active" ? "Vô hiệu hóa" : "Kích hoạt"}
+                            {user.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
                           </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(user.id, user.name)}>
-                            Xóa
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm">
+                                Xóa
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Xác nhận xóa người dùng</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Bạn có chắc chắn muốn xóa tài khoản của {user.fullName || user.userName}? Hành động này
+                                  không thể hoàn tác.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteUser(user.id, user.fullName || user.userName)}
+                                >
+                                  Xóa
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -355,17 +306,27 @@ export default function AdminUsersPage() {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Hiển thị {filteredUsers.length} trên tổng số {users.length} người dùng
+            Hiển thị {users.length} trên tổng số {totalItems} người dùng
           </p>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" disabled>
-              Trước
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={!hasPreviousPage || isLoading}
+            >
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm">
-              1
-            </Button>
-            <Button variant="outline" size="sm">
-              Sau
+            <div className="text-sm">
+              Trang {currentPage} / {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={!hasNextPage || isLoading}
+            >
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </CardFooter>

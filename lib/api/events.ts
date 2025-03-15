@@ -1,104 +1,78 @@
-import api from "./config";
+import { api } from "./api"
 
-interface EventImage {
-  id?: number;
-  imageUrl: string;
+export interface Event {
+  id: number
+  name: string
+  duration: number
+  isCancelled: boolean
+  shortDescription: string
+  detailedDescription: string
+  director: string
+  actors: string
+  thumbnail: string
+  category: string
+  eventImages: { id: number; imageUrl: string }[]
+  createdBy: string
+  createdAt: string
+  modifiedBy: string
+  modifiedAt: string
+  deletedBy: string | null
+  deletedAt: string | null
 }
 
-interface Event {
-  id: number;
-  name: string;
-  duration: number;
-  isCancelled: boolean;
-  shortDescription: string;
-  detailedDescription: string;
-  director: string;
-  actors: string;
-  thumbnail: string;
-  category: string;
-  eventImages: EventImage[];
-  createdBy: string;
-  createdAt: string;
-  modifiedBy: string;
-  modifiedAt: string;
-  deletedBy: string | null;
-  deletedAt: string | null;
+export interface GetEventsParams {
+  search?: string
+  isCancelled?: boolean
+  category?: string
+  pageIndex: number
+  pageSize: number
 }
 
-interface PaginatedResponse<T> {
-  page: number;
-  size: number;
-  totalPages: number;
-  totalItems: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
-  contends: T[];
+export interface GetEventsResponse {
+  page: number
+  size: number
+  totalPages: number
+  totalItems: number
+  hasPreviousPage: boolean
+  hasNextPage: boolean
+  contends: Event[]
 }
 
-interface GetEventsParams {
-  search?: string;
-  pageIndex?: number;
-  pageSize?: number;
-  category?: string;
-  isCancelled?: boolean;
+export interface CreateEventParams {
+  name: string
+  duration: number
+  isCancelled: boolean
+  shortDescription: string
+  detailedDescription: string
+  director: string
+  actors: string
+  thumbnail: string
+  category: string
+  eventImages: { id: number; imageUrl: string }[]
 }
 
 export const eventsApi = {
-  createEvent: async (
-    data: Omit<
-      Event,
-      | "id"
-      | "createdBy"
-      | "createdAt"
-      | "modifiedBy"
-      | "modifiedAt"
-      | "deletedBy"
-      | "deletedAt"
-    >
-  ) => {
-    const response = await api.post(`/Events`, data);
-    return response.data;
+  getEvents: async (params: GetEventsParams): Promise<GetEventsResponse> => {
+    const response = await api.get("/events", { params })
+    return response.data
   },
-  getEvents: async ({
-    search,
-    pageIndex = 1,
-    pageSize = 8,
-    category,
-    isCancelled = undefined,
-  }: GetEventsParams = {}) => {
-    const response = await api.get<PaginatedResponse<Event>>(`/Events`, {
-      params: {
-        Search: search,
-        PageIndex: pageIndex,
-        PageSize: pageSize,
-        Category: category !== "all" ? category : undefined,
-        isCancelled: isCancelled,
-      },
-    });
-    return response.data;
+
+  getEvent: async (id: number): Promise<Event> => {
+    const response = await api.get(`/events/${id}`)
+    return response.data
   },
-  getEvent: async (id: number) => {
-    const response = await api.get<Event>(`/Events/${id}`);
-    return response.data;
+
+  createEvent: async (params: CreateEventParams): Promise<Event> => {
+    const response = await api.post("/events", params)
+    return response.data
   },
-  updateEvent: async (
-    id: number,
-    data: Omit<
-      Event,
-      | "id"
-      | "createdBy"
-      | "createdAt"
-      | "modifiedBy"
-      | "modifiedAt"
-      | "deletedBy"
-      | "deletedAt"
-    >
-  ) => {
-    const response = await api.put(`/Events/${id}`, data);
-    return response.data;
+
+  updateEvent: async (id: number, params: Partial<CreateEventParams>): Promise<Event> => {
+    const response = await api.put(`/events/${id}`, params)
+    return response.data
   },
-  deleteEvent: async (id: number) => {
-    const response = await api.delete(`/Events/${id}`);
-    return response.data;
-  },
-};
+
+  deleteEvent: async (id: number): Promise<void> => {
+    await api.delete(`/events/${id}`)
+  }
+}

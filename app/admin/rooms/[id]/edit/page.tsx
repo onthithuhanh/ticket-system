@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -13,72 +11,115 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, MapPin } from "lucide-react"
+import { ArrowLeft, Save } from "lucide-react"
+import { roomsApi, Room, RoomCategory, RoomStatus, SeatCategory } from "@/lib/api/rooms"
+import { amenitiesApi } from "@/lib/api/amenities"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
-export default function EditRoomPage({ params }: { params: { id: string } }) {
+interface Amenity {
+  id: number
+  name: string
+  description: string
+}
+
+interface Seat {
+  id: number
+  category: SeatCategory
+  status: "Available" | "Unavailable" | "Reserved"
+}
+
+export default function EditRoomPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
+  const { id } = resolvedParams
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [amenities, setAmenities] = useState<Amenity[]>([])
+  const [seats, setSeats] = useState<Seat[]>([])
   const [formData, setFormData] = useState({
     name: "",
-    type: "",
+    category: "" as RoomCategory,
     capacity: "",
-    status: "",
+    status: "" as RoomStatus,
     description: "",
     location: "",
-    facilities: [] as string[],
+    selectedAmenities: [] as number[],
     length: "",
     width: "",
     height: "",
   })
 
-  const facilityOptions = [
-    "Âm thanh 5.1",
-    "Âm thanh cơ bản",
-    "Âm thanh ngoài trời",
-    "Âm thanh hội nghị",
-    "Âm thanh cao cấp",
-    "Màn hình LED",
-    "Màn hình lớn",
-    "Projector",
-    "Ánh sáng sân khấu",
-    "Điều hòa",
-    "Wifi",
-    "Hệ thống thoát nước",
-    "Ghế da",
-    "Minibar",
-  ]
-
   useEffect(() => {
-    // Giả lập tải dữ liệu phòng
-    const loadRoomData = () => {
-      const mockData = {
-        name: "Sân khấu chính",
-        type: "theater",
-        capacity: "500",
-        status: "active",
-        description: "Sân khấu lớn nhất với âm thanh và ánh sáng hiện đại",
-        location: "Tầng 1",
-        facilities: ["Âm thanh 5.1", "Màn hình LED", "Điều hòa", "Wifi"],
-        length: "30",
-        width: "25",
-        height: "8",
+    const loadData = async () => {
+      try {
+        const [room, amenitiesData] = await Promise.all([
+          roomsApi.getRoom(parseInt(id)),
+          amenitiesApi.getAmenities()
+        ])
+        setAmenities(amenitiesData)
+        setFormData({
+          name: room.name,
+          category: room.category,
+          capacity: room.capacity.toString(),
+          status: room.status,
+          description: room.description,
+          location: room.location,
+          selectedAmenities: room.roomAmenities.map(a => a.amenityId),
+          length: room.length.toString(),
+          width: room.width.toString(),
+          height: room.height.toString(),
+        })
+
+        // Set seats from API response
+        if (room.seats) {
+          setSeats(room.seats)
+        }
+      } catch (error) {
+        toast({
+          title: "Lỗi",
+          description: "Không thể tải thông tin phòng",
+          variant: "destructive",
+        })
+        router.push("/admin/rooms")
       }
-      setFormData(mockData)
     }
 
-    loadRoomData()
-  }, [params.id])
+    loadData()
+  }, [id, router, toast])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleFacilityChange = (facility: string, checked: boolean) => {
+  const handleAmenityChange = (amenityId: number, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
-      facilities: checked ? [...prev.facilities, facility] : prev.facilities.filter((f) => f !== facility),
+      selectedAmenities: checked 
+        ? [...prev.selectedAmenities, amenityId]
+        : prev.selectedAmenities.filter((id) => id !== amenityId),
     }))
+  }
+
+  const getSeatColor = (seat: Seat) => {
+    if (seat.status === "Unavailable") return "bg-gray-200 opacity-50"
+    if (seat.status === "Reserved") return "border-2 border-yellow-500 bg-white"
+    
+    switch (seat.category) {
+      case SeatCategory.Vip:
+        return "bg-purple-500 text-white"
+      case SeatCategory.Normal:
+        return "bg-blue-500 text-white"
+      case SeatCategory.Economy:
+        return "bg-gray-200 text-gray-700"
+      default:
+        return "bg-gray-200"
+    }
+  }
+
+  const updateSeat = (seatId: number, updates: Partial<Seat>) => {
+    setSeats(prev => prev.map(seat => 
+      seat.id === seatId ? { ...seat, ...updates } : seat
+    ))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,8 +127,19 @@ export default function EditRoomPage({ params }: { params: { id: string } }) {
     setIsLoading(true)
 
     try {
-      // Giả lập cập nhật phòng
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await roomsApi.updateRoom(parseInt(id), {
+        name: formData.name,
+        category: formData.category as RoomCategory,
+        status: formData.status as RoomStatus,
+        location: formData.location,
+        capacity: parseInt(formData.capacity),
+        description: formData.description,
+        roomAmenities: formData.selectedAmenities.map(id => ({ amenityId: id })),
+        length: parseFloat(formData.length),
+        width: parseFloat(formData.width),
+        height: parseFloat(formData.height),
+        seats: seats
+      })
 
       toast({
         title: "Cập nhật phòng thành công",
@@ -141,17 +193,17 @@ export default function EditRoomPage({ params }: { params: { id: string } }) {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="type">Loại phòng *</Label>
-                    <Select value={formData.type} onValueChange={(value) => handleInputChange("type", value)}>
+                    <Label htmlFor="category">Loại phòng *</Label>
+                    <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Chọn loại phòng" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="theater">Sân khấu</SelectItem>
-                        <SelectItem value="studio">Studio</SelectItem>
-                        <SelectItem value="outdoor">Ngoài trời</SelectItem>
-                        <SelectItem value="conference">Hội trường</SelectItem>
-                        <SelectItem value="vip">VIP</SelectItem>
+                        <SelectItem value={RoomCategory.Stage}>Sân khấu</SelectItem>
+                        <SelectItem value={RoomCategory.Studio}>Studio</SelectItem>
+                        <SelectItem value={RoomCategory.Outdoor}>Ngoài trời</SelectItem>
+                        <SelectItem value={RoomCategory.Hall}>Hội trường</SelectItem>
+                        <SelectItem value={RoomCategory.Vip}>VIP</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -185,10 +237,10 @@ export default function EditRoomPage({ params }: { params: { id: string } }) {
                         <SelectValue placeholder="Chọn trạng thái" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="active">Hoạt động</SelectItem>
-                        <SelectItem value="inactive">Không hoạt động</SelectItem>
-                        <SelectItem value="maintenance">Bảo trì</SelectItem>
-                        <SelectItem value="closed">Đóng cửa</SelectItem>
+                        <SelectItem value={RoomStatus.Active}>Hoạt động</SelectItem>
+                        <SelectItem value={RoomStatus.Inactive}>Không hoạt động</SelectItem>
+                        <SelectItem value={RoomStatus.Maintenance}>Bảo trì</SelectItem>
+                        <SelectItem value={RoomStatus.Closed}>Đóng cửa</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -213,15 +265,15 @@ export default function EditRoomPage({ params }: { params: { id: string } }) {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
-                  {facilityOptions.map((facility) => (
-                    <div key={facility} className="flex items-center space-x-2">
+                  {amenities.map((amenity) => (
+                    <div key={amenity.id} className="flex items-center space-x-2">
                       <Checkbox
-                        id={facility}
-                        checked={formData.facilities.includes(facility)}
-                        onCheckedChange={(checked) => handleFacilityChange(facility, checked as boolean)}
+                        id={`amenity-${amenity.id}`}
+                        checked={formData.selectedAmenities.includes(amenity.id)}
+                        onCheckedChange={(checked) => handleAmenityChange(amenity.id, checked as boolean)}
                       />
-                      <Label htmlFor={facility} className="text-sm font-normal">
-                        {facility}
+                      <Label htmlFor={`amenity-${amenity.id}`} className="text-sm font-normal">
+                        {amenity.name}
                       </Label>
                     </div>
                   ))}
@@ -238,7 +290,7 @@ export default function EditRoomPage({ params }: { params: { id: string } }) {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="length">Chiều dài (m)</Label>
+                  <Label htmlFor="length">Chiều dài (m) *</Label>
                   <Input
                     id="length"
                     type="number"
@@ -246,10 +298,11 @@ export default function EditRoomPage({ params }: { params: { id: string } }) {
                     value={formData.length}
                     onChange={(e) => handleInputChange("length", e.target.value)}
                     placeholder="30"
+                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="width">Chiều rộng (m)</Label>
+                  <Label htmlFor="width">Chiều rộng (m) *</Label>
                   <Input
                     id="width"
                     type="number"
@@ -257,10 +310,11 @@ export default function EditRoomPage({ params }: { params: { id: string } }) {
                     value={formData.width}
                     onChange={(e) => handleInputChange("width", e.target.value)}
                     placeholder="25"
+                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="height">Chiều cao (m)</Label>
+                  <Label htmlFor="height">Chiều cao (m) *</Label>
                   <Input
                     id="height"
                     type="number"
@@ -268,6 +322,7 @@ export default function EditRoomPage({ params }: { params: { id: string } }) {
                     value={formData.height}
                     onChange={(e) => handleInputChange("height", e.target.value)}
                     placeholder="8"
+                    required
                   />
                 </div>
                 {formData.length && formData.width && (
@@ -288,17 +343,85 @@ export default function EditRoomPage({ params }: { params: { id: string } }) {
                 <CardTitle>Quản lý ghế</CardTitle>
                 <CardDescription>Thiết lập sơ đồ ghế cho phòng</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Sử dụng trang quản lý ghế để thiết lập sơ đồ ghế chi tiết cho phòng này.
-                  </p>
-                  <Link href={`/admin/rooms/${params.id}/seats`}>
-                    <Button className="w-full" variant="outline">
-                      <MapPin className="mr-2 h-4 w-4" />
-                      Quản lý sơ đồ ghế
-                    </Button>
-                  </Link>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 rounded-full bg-purple-500" />
+                    <span>VIP</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 rounded-full bg-blue-500" />
+                    <span>Thường</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 rounded-full bg-gray-200" />
+                    <span>Tiết kiệm</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 border-2 border-yellow-500 bg-white rounded-full" />
+                    <span>Đã đặt</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 bg-gray-200 opacity-50 rounded-full" />
+                    <span>Không sử dụng</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-center">
+                  <div className="grid grid-cols-10 gap-2">
+                    {seats.map((seat) => (
+                      <Popover key={seat.id}>
+                        <PopoverTrigger asChild>
+                          <button
+                            className={`h-8 w-8 rounded flex items-center justify-center text-xs font-medium cursor-pointer ${getSeatColor(seat)}`}
+                          >
+                            {seat.id}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="space-y-4">
+                            <div>
+                              <Label>Ghế {seat.id}</Label>
+                              <div className="mt-2 space-y-2">
+                                <div>
+                                  <Label>Loại ghế</Label>
+                                  <Select
+                                    value={seat.category}
+                                    onValueChange={(value) => updateSeat(seat.id, { category: value as SeatCategory })}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value={SeatCategory.Vip}>VIP</SelectItem>
+                                      <SelectItem value={SeatCategory.Normal}>Thường</SelectItem>
+                                      <SelectItem value={SeatCategory.Economy}>Tiết kiệm</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label>Trạng thái</Label>
+                                  <Select
+                                    value={seat.status}
+                                    onValueChange={(value) => updateSeat(seat.id, { status: value as Seat['status'] })}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Available">Có sẵn</SelectItem>
+                                      <SelectItem value="Unavailable">Không sử dụng</SelectItem>
+                                      <SelectItem value="Reserved">Đã đặt trước</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>

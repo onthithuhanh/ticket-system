@@ -76,7 +76,7 @@ export default function CreateRoomPage() {
   const handleAmenityChange = (amenityId: number, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
-      selectedAmenities: checked 
+      selectedAmenities: checked
         ? [...prev.selectedAmenities, amenityId]
         : prev.selectedAmenities.filter((id) => id !== amenityId),
     }))
@@ -116,7 +116,7 @@ export default function CreateRoomPage() {
   }
 
   const updateSeat = (seatId: number, updates: Partial<Seat>) => {
-    setSeats(prev => prev.map(seat => 
+    setSeats(prev => prev.map(seat =>
       seat.id === seatId ? { ...seat, ...updates } : seat
     ))
   }
@@ -340,14 +340,15 @@ export default function CreateRoomPage() {
                 )}
               </CardContent>
             </Card>
-
+          </div>
+          <div className="lg:col-span-3 space-y-6" >
             <Card>
               <CardHeader>
                 <CardTitle>Sơ đồ ghế</CardTitle>
                 <CardDescription>Thiết lập sơ đồ ghế cho phòng</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid col-span-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="numberSeatsOfRow">Số hàng ghế *</Label>
                     <Input
@@ -372,8 +373,8 @@ export default function CreateRoomPage() {
                   </div>
                 </div>
 
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   onClick={generateSeats}
                   disabled={!formData.numberSeatsOfRow || !formData.columns}
                 >
@@ -395,7 +396,7 @@ export default function CreateRoomPage() {
                                     className={`w-8 h-8 rounded flex items-center justify-center text-xs font-medium cursor-pointer
                                       ${seat.category === SeatCategory.Vip ? 'bg-purple-500 text-white' :
                                         seat.category === SeatCategory.Normal ? 'bg-blue-500 text-white' :
-                                        'bg-gray-200 text-gray-700'}
+                                          'bg-gray-200 text-gray-700'}
                                       ${seat.status === 'Blocked' ? 'opacity-50' : ''} `}
                                   >
                                     {seat.id}
@@ -433,8 +434,7 @@ export default function CreateRoomPage() {
                                             </SelectTrigger>
                                             <SelectContent>
                                               <SelectItem value="Available">Có sẵn</SelectItem>
-                                              <SelectItem value="Blocked">Không sử dụng</SelectItem>
-                                              <SelectItem value="Reserved">Đã đặt trước</SelectItem>
+                                              <SelectItem value="Blocked">Không sử dụng</SelectItem> 
                                             </SelectContent>
                                           </Select>
                                         </div>
@@ -476,7 +476,6 @@ export default function CreateRoomPage() {
             </Card>
           </div>
         </div>
-
         <div className="flex justify-end gap-4">
           <Link href="/admin/rooms">
             <Button type="button" variant="outline">

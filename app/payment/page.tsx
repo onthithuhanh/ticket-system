@@ -203,13 +203,13 @@ export default function PaymentPage() {
                         VNPay
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    {/* <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Momo" id="momo" />
                       <Label htmlFor="momo" className="flex items-center gap-2">
                         <Wallet className="h-4 w-4" />
                         MoMo
                       </Label>
-                    </div>
+                    </div> */}
                   </RadioGroup>
                 </CardContent>
               </Card>

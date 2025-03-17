@@ -354,7 +354,8 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
                 )}
               </CardContent>
             </Card>
-
+          </div>
+            <div className="lg:col-span-3 space-y-6" >
             <Card>
               <CardHeader>
                 <CardTitle>Quản lý ghế</CardTitle>
@@ -446,7 +447,7 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
                 </div>
               </CardContent>
             </Card>
-          </div>
+            </div>
         </div>
 
         <div className="flex justify-end gap-4">

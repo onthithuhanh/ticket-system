@@ -250,7 +250,7 @@ export default function AdminTransactionsPage() {
               <SelectContent>
                 <SelectItem value="all">Tất cả phương thức</SelectItem>
                 <SelectItem value="vnpay">VNPay</SelectItem>
-                <SelectItem value="momo">Ví MoMo</SelectItem>
+                {/* <SelectItem value="momo">Ví MoMo</SelectItem> */}
               </SelectContent>
             </Select>
           </div>

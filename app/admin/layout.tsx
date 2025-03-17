@@ -99,11 +99,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: "Quản lý tiện nghi",
       href: "/admin/amenities",
     },
-    {
-      icon: Settings,
-      label: "Cài đặt",
-      href: "/admin/settings",
-    },
+    // {
+    //   icon: Settings,
+    //   label: "Cài đặt",
+    //   href: "/admin/settings",
+    // },
   ]
 
   return (

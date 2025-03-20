@@ -176,7 +176,7 @@ export default function CreateEventPage() {
                       <SelectContent>
                         <SelectItem value="Drame">Kịch</SelectItem>
                         <SelectItem value="Comedy">Hài kịch</SelectItem>
-                        <SelectItem value="psychological">Tâm lý</SelectItem>
+                        <SelectItem value="Opera">Opera</SelectItem>
                         <SelectItem value="Dance">Múa ballet</SelectItem>
                         <SelectItem value="Circus">Xiếc</SelectItem>
                         <SelectItem value="Music">Nhạc kịch</SelectItem>

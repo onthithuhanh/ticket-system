@@ -158,8 +158,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       const newEventImages = await uploadMultipleImages(
         additionalImages.map(img => img.file),
         "events"
-      ).then(urls => urls.map((url, index) => ({ 
-        id: existingImages.length + index + 1, 
+      ).then(urls => urls.map(url => ({ 
         imageUrl: url 
       })))
 

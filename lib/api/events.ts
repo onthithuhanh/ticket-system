@@ -48,7 +48,7 @@ export interface CreateEventParams {
   actors: string
   thumbnail: string
   category: string
-  eventImages: { id: number; imageUrl: string }[]
+  eventImages: {  imageUrl: string }[]
 }
 
 export const eventsApi = {

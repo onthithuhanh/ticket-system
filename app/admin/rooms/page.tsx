@@ -133,11 +133,21 @@ export default function RoomsPage() {
     }
   }
 
-  const handleDeleteRoom = (id: number, name: string) => {
-    toast({
-      title: "Đã xóa phòng",
-      description: `Phòng "${name}" đã được xóa thành công`,
-    })
+  const handleDeleteRoom = async (id: number, name: string) => {
+    try {
+      await roomsApi.deleteRoom(id)
+      toast({
+        title: "Thành công",
+        description: `Đã xóa phòng "${name}"`,
+      })
+      fetchRooms() // Refresh the room list after deletion
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Đã xảy ra lỗi khi xóa phòng",
+        variant: "destructive",
+      })
+    }
   }
 
   return (

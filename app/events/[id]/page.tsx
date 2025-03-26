@@ -103,8 +103,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const getSeatColor = (seat: Seat) => {
     if (selectedSeats.find(s => s.id === seat.id)) return "bg-green-500 text-white"
-    if (seat.isBooked) return "bg-gray-200 opacity-50 cursor-not-allowed"
-    if (seat.status === "Blocked") return "bg-gray-200 opacity-50 cursor-not-allowed"
+    if (seat.isBooked) return "bg-red-200 opacity-50 cursor-not-allowed"
+    if (seat.status === "Blocked") return "bg-red-200 opacity-50 cursor-not-allowed"
     
     switch (seat.category) {
       case "Vip":
@@ -172,6 +172,24 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     router.push(`/payment?${queryParams.toString()}`)
   }
 
+  const getCategoryText = (category: string) => {
+    switch (category) {
+      case "Drame":
+        return "Kịch"
+      case "Music":
+        return "Âm nhạc"
+      case "Dance":
+        return "Múa"
+      case "Circus":
+        return "Xiếc"
+      case "Comedy":
+        return "Hài kịch"
+      case "Opera":
+        return "Opera"
+      default:
+        return category
+    }
+  }
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -329,7 +347,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     <Users className="mr-2 h-5 w-5 text-gray-500" />
                     <div>
                       <p className="font-medium">Thể loại</p>
-                      <p className="text-sm text-gray-500">{event.category}</p>
+                      <p className="text-sm text-gray-500">{getCategoryText(event.category)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -391,12 +409,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Seat Selection Dialog */}
       <Dialog open={showSeatSelection} onOpenChange={setShowSeatSelection}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chọn ghế</DialogTitle>
           </DialogHeader>
           <div className="p-4 space-y-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <div className="h-4 w-4 rounded-full bg-purple-500" />
                 <span>VIP</span>
@@ -410,7 +428,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <span>Tiết kiệm</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-4 w-4 bg-gray-200 opacity-50 rounded-full" />
+                <div className="h-4 w-4 bg-red-200 rounded-full" />
                 <span>Không sử dụng</span>
               </div>
               <div className="flex items-center gap-2">
@@ -421,11 +439,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
             <div className="flex justify-center">
               <div 
-                className="grid gap-2" 
+                className="grid gap-2 overflow-x-auto" 
                 style={{ 
                   gridTemplateColumns: `repeat(${room?.numberSeatsOfRow || 0}, minmax(0, 1fr))`,
-                  maxWidth: '100%',
-                  overflowX: 'auto'
+                  maxWidth: '100%'
                 }}
               >
                 {seats.map((seat) => (
@@ -442,8 +459,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </div>
 
             {selectedSeats.length > 0 && (
-              <div className="space-y-4">
-                <div className="border-t pt-4">
+              <div className="space-y-4 sticky bottom-0 bg-background pt-4 border-t">
+                <div>
                   <h3 className="font-medium mb-2">Ghế đã chọn:</h3>
                   <div className="flex flex-wrap gap-2">
                     {selectedSeats.map(seat => (
@@ -453,16 +470,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     ))}
                   </div>
                 </div>
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-gray-500">Tổng số ghế: {selectedSeats.length}</p>
-                      <p className="text-lg font-semibold">Tổng tiền: {calculateTotalPrice().toLocaleString('vi-VN')}đ</p>
-                    </div>
-                    <Button onClick={handlePayment}>
-                      Tiếp tục thanh toán
-                    </Button>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-gray-500">Tổng số ghế: {selectedSeats.length}</p>
+                    <p className="text-lg font-semibold">Tổng tiền: {calculateTotalPrice().toLocaleString('vi-VN')}đ</p>
                   </div>
+                  <Button onClick={handlePayment}>
+                    Tiếp tục thanh toán
+                  </Button>
                 </div>
               </div>
             )}

@@ -37,6 +37,7 @@ export default function CreateEventPage() {
   })
   const [mainImage, setMainImage] = useState<ImagePreview | null>(null)
   const [additionalImages, setAdditionalImages] = useState<ImagePreview[]>([])
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const mainImageInputRef = useRef<HTMLInputElement>(null)
   const additionalImagesInputRef = useRef<HTMLInputElement>(null)
 
@@ -92,8 +93,43 @@ export default function CreateEventPage() {
     }
   }
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+    
+    // Kiểm tra các trường bắt buộc
+    if (!formData.name.trim()) newErrors.name = "Vui lòng nhập tên vở kịch"
+    if (!formData.category) newErrors.category = "Vui lòng chọn thể loại"
+    if (!formData.duration) newErrors.duration = "Vui lòng nhập thời lượng"
+    if (!formData.shortDescription.trim()) newErrors.shortDescription = "Vui lòng nhập mô tả ngắn"
+    if (!formData.director.trim()) newErrors.director = "Vui lòng nhập tên đạo diễn"
+    
+    // Kiểm tra thời lượng
+    const duration = parseInt(formData.duration)
+    if (isNaN(duration) || duration <= 30) {
+      newErrors.duration = "Thời lượng phải lớn hơn 30 phút"
+    }
+    
+    // Kiểm tra hình ảnh
+    if (!mainImage) {
+      newErrors.mainImage = "Vui lòng tải lên ảnh chính"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validateForm()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng kiểm tra lại thông tin",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -165,6 +201,7 @@ export default function CreateEventPage() {
                     placeholder="Nhập tên vở kịch"
                     required
                   />
+                  {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -182,6 +219,7 @@ export default function CreateEventPage() {
                         <SelectItem value="Music">Nhạc kịch</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.category && <p className="text-sm text-red-500">{errors.category}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="duration">Thời lượng (phút) *</Label>
@@ -193,6 +231,7 @@ export default function CreateEventPage() {
                       placeholder="120"
                       required
                     />
+                    {errors.duration && <p className="text-sm text-red-500">{errors.duration}</p>}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -205,6 +244,7 @@ export default function CreateEventPage() {
                     rows={3}
                     required
                   />
+                  {errors.shortDescription && <p className="text-sm text-red-500">{errors.shortDescription}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="detailedDescription">Mô tả chi tiết</Label>
@@ -234,6 +274,7 @@ export default function CreateEventPage() {
                     placeholder="Tên đạo diễn"
                     required
                   />
+                  {errors.director && <p className="text-sm text-red-500">{errors.director}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="actors">Diễn viên</Label>
@@ -295,6 +336,7 @@ export default function CreateEventPage() {
                           onChange={handleMainImageChange}
                         />
                         <p className="mt-2 text-sm text-gray-500">PNG, JPG, GIF tối đa 10MB</p>
+                        {errors.mainImage && <p className="mt-2 text-sm text-red-500">{errors.mainImage}</p>}
                       </div>
                     </div>
                   )}

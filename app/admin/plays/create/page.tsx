@@ -31,13 +31,50 @@ export default function CreatePlayPage() {
     synopsis: "",
     notes: "",
   })
+  const [images, setImages] = useState<File[]>([])
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+    
+    // Kiểm tra các trường bắt buộc
+    if (!formData.title.trim()) newErrors.title = "Vui lòng nhập tên vở kịch"
+    if (!formData.genre) newErrors.genre = "Vui lòng chọn thể loại"
+    if (!formData.duration) newErrors.duration = "Vui lòng nhập thời lượng"
+    if (!formData.description.trim()) newErrors.description = "Vui lòng nhập mô tả ngắn"
+    if (!formData.director.trim()) newErrors.director = "Vui lòng nhập tên đạo diễn"
+    
+    // Kiểm tra thời lượng
+    const duration = parseInt(formData.duration)
+    if (isNaN(duration) || duration <= 30) {
+      newErrors.duration = "Thời lượng phải lớn hơn 30 phút"
+    }
+    
+    // Kiểm tra hình ảnh
+    if (images.length === 0) {
+      newErrors.images = "Vui lòng tải lên ít nhất một hình ảnh"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validateForm()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng kiểm tra lại thông tin",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -59,6 +96,12 @@ export default function CreatePlayPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    setImages(files)
+    setErrors(prev => ({ ...prev, images: "" }))
   }
 
   return (
@@ -93,6 +136,7 @@ export default function CreatePlayPage() {
                     placeholder="Nhập tên vở kịch"
                     required
                   />
+                  {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -102,7 +146,7 @@ export default function CreatePlayPage() {
                         <SelectValue placeholder="Chọn thể loại" />
                       </SelectTrigger>
                       <SelectContent>
-                      <SelectItem value="Drame">Kịch</SelectItem>
+                        <SelectItem value="Drame">Kịch</SelectItem>
                         <SelectItem value="Comedy">Hài kịch</SelectItem>
                         <SelectItem value="Opera">Opera</SelectItem>
                         <SelectItem value="Dance">Múa ballet</SelectItem>
@@ -110,6 +154,7 @@ export default function CreatePlayPage() {
                         <SelectItem value="Music">Nhạc kịch</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.genre && <p className="text-sm text-red-500">{errors.genre}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="duration">Thời lượng (phút) *</Label>
@@ -121,6 +166,7 @@ export default function CreatePlayPage() {
                       placeholder="120"
                       required
                     />
+                    {errors.duration && <p className="text-sm text-red-500">{errors.duration}</p>}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -162,6 +208,7 @@ export default function CreatePlayPage() {
                     placeholder="Tên đạo diễn"
                     required
                   />
+                  {errors.director && <p className="text-sm text-red-500">{errors.director}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cast">Diễn viên</Label>
@@ -227,10 +274,28 @@ export default function CreatePlayPage() {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Upload className="mx-auto h-12 w-12 text-gray-400" />
                   <div className="mt-4">
-                    <Button type="button" variant="outline">
+                    <input
+                      type="file"
+                      id="image-upload"
+                      className="hidden"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => document.getElementById('image-upload')?.click()}
+                    >
                       Chọn hình ảnh
                     </Button>
                     <p className="mt-2 text-sm text-gray-500">PNG, JPG, GIF tối đa 10MB</p>
+                    {images.length > 0 && (
+                      <p className="mt-2 text-sm text-green-500">
+                        Đã chọn {images.length} hình ảnh
+                      </p>
+                    )}
+                    {errors.images && <p className="mt-2 text-sm text-red-500">{errors.images}</p>}
                   </div>
                 </div>
               </CardContent>

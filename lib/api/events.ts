@@ -24,6 +24,8 @@ export interface GetEventsParams {
   search?: string
   isCancelled?: boolean
   category?: string
+  sortColumn?: string
+  sortDir?: string
   pageIndex: number
   pageSize: number
 }

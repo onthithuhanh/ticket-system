@@ -86,6 +86,28 @@ export default function CreateRoomPage() {
     const numberSeatsOfRow = parseInt(formData.numberSeatsOfRow)
     const columns = parseInt(formData.columns)
     const totalSeats = numberSeatsOfRow * columns
+    const capacity = parseInt(formData.capacity)
+
+    // Kiểm tra sức chứa
+    if (capacity < totalSeats) {
+      toast({
+        title: "Cảnh báo",
+        description: `Sức chứa tối đa (${capacity}) không được nhỏ hơn tổng số ghế (${totalSeats}). Vui lòng tăng sức chứa hoặc giảm số ghế.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Giới hạn tổng số ghế tối đa là 300
+    if (totalSeats > 300) {
+      toast({
+        title: "Cảnh báo",
+        description: "Tổng số ghế không được vượt quá 300. Vui lòng chọn lại số hàng và số ghế mỗi hàng.",
+        variant: "destructive",
+      })
+      return
+    }
+
     const vipCount = Math.floor(totalSeats * 0.2)
     const normalCount = Math.floor(totalSeats * 0.3)
 
@@ -161,6 +183,22 @@ export default function CreateRoomPage() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const getSeatColor = (seat: Seat) => {
+    if (seat.status === "Blocked") return "bg-red-200 opacity-50"
+    if (seat.status === "Reserved") return "border-2 border-yellow-500 bg-white"
+    
+    switch (seat.category) {
+      case SeatCategory.Vip:
+        return "bg-purple-500 text-white"
+      case SeatCategory.Normal:
+        return "bg-blue-500 text-white"
+      case SeatCategory.Economy:
+        return "bg-gray-200 text-gray-700"
+      default:
+        return "bg-gray-200"
     }
   }
 
@@ -351,25 +389,39 @@ export default function CreateRoomPage() {
                 <div className="grid col-span-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="numberSeatsOfRow">Số hàng ghế *</Label>
-                    <Input
-                      id="numberSeatsOfRow"
-                      type="number"
-                      value={formData.numberSeatsOfRow}
-                      onChange={(e) => handleInputChange("numberSeatsOfRow", e.target.value)}
-                      placeholder="Nhập số hàng ghế"
-                      required
-                    />
+                    <Select 
+                      value={formData.numberSeatsOfRow} 
+                      onValueChange={(value) => handleInputChange("numberSeatsOfRow", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn số hàng ghế" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 15 }, (_, i) => i + 1).map((num) => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} hàng
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="columns">Số ghế mỗi hàng *</Label>
-                    <Input
-                      id="columns"
-                      type="number"
-                      value={formData.columns}
-                      onChange={(e) => handleInputChange("columns", e.target.value)}
-                      placeholder="Nhập số ghế mỗi hàng"
-                      required
-                    />
+                    <Select 
+                      value={formData.columns} 
+                      onValueChange={(value) => handleInputChange("columns", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn số ghế mỗi hàng" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 15 }, (_, i) => i + 1).map((num) => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} ghế
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -394,9 +446,7 @@ export default function CreateRoomPage() {
                                 <PopoverTrigger asChild>
                                   <div
                                     className={`w-8 h-8 rounded flex items-center justify-center text-xs font-medium cursor-pointer
-                                      ${seat.category === SeatCategory.Vip ? 'bg-purple-500 text-white' :
-                                        seat.category === SeatCategory.Normal ? 'bg-blue-500 text-white' :
-                                          'bg-gray-200 text-gray-700'}
+                                      ${getSeatColor(seat)}
                                       ${seat.status === 'Blocked' ? 'opacity-50' : ''} `}
                                   >
                                     {seat.id}
@@ -461,12 +511,9 @@ export default function CreateRoomPage() {
                         <div className="w-4 h-4 bg-gray-200 rounded"></div>
                         <span className="text-sm">Tiết kiệm</span>
                       </div>
+                     
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-yellow-500 rounded"></div>
-                        <span className="text-sm">Đã đặt</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-gray-200 opacity-50 rounded"></div>
+                        <div className="w-4 h-4 bg-red-200 opacity-50 rounded"></div>
                         <span className="text-sm">Không sử dụng</span>
                       </div>
                     </div>

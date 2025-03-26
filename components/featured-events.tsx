@@ -30,6 +30,25 @@ export function FeaturedEvents() {
     fetchShowtimes()
   }, [])
 
+  const getCategoryText = (category: string) => {
+    switch (category) {
+      case "Drame":
+        return "Kịch"
+      case "Music":
+        return "Âm nhạc"
+      case "Dance":
+        return "Múa"
+      case "Circus":
+        return "Xiếc"
+      case "Comedy":
+        return "Hài kịch"
+      case "Opera":
+        return "Opera"
+      default:
+        return category
+    }
+  }
+
   if (loading) {
     return <div className="text-center py-8">Đang tải...</div>
   }
@@ -59,7 +78,7 @@ export function FeaturedEvents() {
               )}
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <Badge>{showtime.event?.category}</Badge>
+                  <Badge>{showtime.event?.category ? getCategoryText(showtime.event.category) : ''}</Badge>
                   
                 </div>
                 <CardTitle className="line-clamp-1">{showtime.event?.name}</CardTitle>

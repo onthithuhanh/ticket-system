@@ -88,7 +88,9 @@ export default function AdminEventsPage() {
         search: searchTerm,
         pageIndex: currentPage,
         pageSize,
-        category: categoryFilter === 'all' ? undefined : categoryFilter
+        category: categoryFilter === 'all' ? undefined : categoryFilter,
+        sortColumn: "createdAt",
+        sortDir: "Desc"
       })
       setEvents(response.contends)
       setTotalPages(response.totalPages)
@@ -130,6 +132,25 @@ export default function AdminEventsPage() {
     ) : (
       <Badge className="bg-green-500">Hiệu lực</Badge>
     )
+  }
+
+  const getCategoryText = (category: string) => {
+    switch (category) {
+      case "Drame":
+        return "Kịch"
+      case "Music":
+        return "Âm nhạc"
+      case "Dance":
+        return "Múa"
+      case "Circus":
+        return "Xiếc"
+      case "Comedy":
+        return "Hài kịch"
+      case "Opera":
+        return "Opera"
+      default:
+        return category
+    }
   }
 
   // Thống kê
@@ -252,7 +273,7 @@ export default function AdminEventsPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{event.category}</TableCell>
+                      <TableCell>{getCategoryText(event.category)}</TableCell>
                       <TableCell>{event.director}</TableCell>
                       <TableCell>{event.duration} phút</TableCell>
                       <TableCell>{getStatusBadge(event.isCancelled)}</TableCell>

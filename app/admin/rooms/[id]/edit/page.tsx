@@ -105,7 +105,7 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
   }
 
   const getSeatColor = (seat: Seat) => {
-    if (seat.status === "Blocked") return "bg-gray-200 opacity-50"
+    if (seat.status === "Blocked") return "bg-red-200 opacity-50"
     if (seat.status === "Reserved") return "border-2 border-yellow-500 bg-white"
     
     switch (seat.category) {
@@ -131,6 +131,20 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
     setIsLoading(true)
 
     try {
+      const totalSeats = seats.length
+      const capacity = parseInt(formData.capacity)
+
+      // Kiểm tra sức chứa
+      if (capacity < totalSeats) {
+        toast({
+          title: "Cảnh báo",
+          description: `Sức chứa tối đa (${capacity}) không được nhỏ hơn tổng số ghế (${totalSeats}). Vui lòng tăng sức chứa hoặc giảm số ghế.`,
+          variant: "destructive",
+        })
+        setIsLoading(false)
+        return
+      }
+
       await roomsApi.updateRoom(parseInt(id), {
         command: "UpdateRoom",
         name: formData.name,
@@ -340,6 +354,8 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
                     onChange={(e) => handleInputChange("numberSeatsOfRow", e.target.value)}
                     placeholder="Nhập số hàng ghế"
                     required
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
                 {formData.length && formData.width && (
@@ -375,12 +391,9 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
                     <div className="h-4 w-4 rounded-full bg-gray-200" />
                     <span>Tiết kiệm</span>
                   </div>
+            
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 border-2 border-yellow-500 bg-white rounded-full" />
-                    <span>Đã đặt</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 bg-gray-200 opacity-50 rounded-full" />
+                    <div className="h-4 w-4 bg-red-200 opacity-50 rounded-full" />
                     <span>Không sử dụng</span>
                   </div>
                 </div>

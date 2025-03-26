@@ -68,6 +68,25 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
     }
   }
 
+  const getCategoryText = (category: string) => {
+    switch (category) {
+      case "Drame":
+        return "Kịch"
+      case "Music":
+        return "Âm nhạc"
+      case "Dance":
+        return "Múa"
+      case "Circus":
+        return "Xiếc"
+      case "Comedy":
+        return "Hài kịch"
+      case "Opera":
+        return "Opera"
+      default:
+        return category
+    }
+  }
+
   if (!event) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -132,8 +151,8 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Thể loại</h3>
-                  <p className="mt-1">{event.category}</p>
+                  <h3 className="text-sm font-medium text-gray-500">Thể loại123</h3>
+                  <p className="mt-1">{getCategoryText(event.category)}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Thời lượng</h3>

@@ -63,6 +63,25 @@ export default function EventsPage() {
     return text.slice(0, maxLength) + "..."
   }
 
+  const getCategoryText = (category: string) => {
+    switch (category) {
+      case "Drame":
+        return "Kịch"
+      case "Music":
+        return "Âm nhạc"
+      case "Dance":
+        return "Múa"
+      case "Circus":
+        return "Xiếc"
+      case "Comedy":
+        return "Hài kịch"
+      case "Opera":
+        return "Opera"
+      default:
+        return category
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background">
@@ -128,7 +147,7 @@ export default function EventsPage() {
                           />
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between mb-2">
-                              <Badge variant="secondary">{event.category}</Badge>
+                              <Badge variant="secondary">{getCategoryText(event.category)}</Badge>
                               {event.isCancelled && (
                                 <Badge variant="destructive">Đã hủy</Badge>
                               )}

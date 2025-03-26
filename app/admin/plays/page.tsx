@@ -41,7 +41,7 @@ export default function AdminPlaysPage() {
     {
       id: 1,
       title: "Lôi Vũ",
-      genre: "drama",
+      genre: "Drame",
       duration: 120,
       status: "active",
       description: "Một vở kịch cảm động về tình yêu và sự hy sinh trong thời chiến",
@@ -57,7 +57,7 @@ export default function AdminPlaysPage() {
     {
       id: 2,
       title: "Romeo và Juliet",
-      genre: "romance",
+      genre: "Drame",
       duration: 150,
       status: "active",
       description: "Tác phẩm kinh điển của Shakespeare về tình yêu bất diệt",
@@ -73,7 +73,7 @@ export default function AdminPlaysPage() {
     {
       id: 3,
       title: "Người Đàn Bà Điên",
-      genre: "psychological",
+      genre: "Drame",
       duration: 90,
       status: "active",
       description: "Vở kịch tâm lý sâu sắc về số phận con người",
@@ -89,7 +89,7 @@ export default function AdminPlaysPage() {
     {
       id: 4,
       title: "Hồ Thiên Nga",
-      genre: "ballet",
+      genre: "Dance",
       duration: 180,
       status: "inactive",
       description: "Tác phẩm múa ballet kinh điển",
@@ -105,7 +105,7 @@ export default function AdminPlaysPage() {
     {
       id: 5,
       title: "Đêm Kỳ Diệu",
-      genre: "circus",
+      genre: "Circus",
       duration: 100,
       status: "draft",
       description: "Chương trình xiếc đặc sắc cho mọi lứa tuổi",
@@ -153,20 +153,18 @@ export default function AdminPlaysPage() {
 
   const getGenreText = (genre: string) => {
     switch (genre) {
-      case "drama":
+      case "Drame":
         return "Kịch"
-      case "romance":
-        return "Lãng mạn"
-      case "comedy":
-        return "Hài kịch"
-      case "psychological":
-        return "Tâm lý"
-      case "ballet":
-        return "Múa ballet"
-      case "circus":
+      case "Music":
+        return "Âm nhạc"
+      case "Dance":
+        return "Múa"
+      case "Circus":
         return "Xiếc"
-      case "musical":
-        return "Nhạc kịch"
+      case "Comedy":
+        return "Hài kịch"
+      case "Opera":
+        return "Opera"
       default:
         return "Khác"
     }
@@ -262,13 +260,12 @@ export default function AdminPlaysPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả thể loại</SelectItem>
-                <SelectItem value="drama">Kịch</SelectItem>
-                <SelectItem value="romance">Lãng mạn</SelectItem>
-                <SelectItem value="comedy">Hài kịch</SelectItem>
-                <SelectItem value="psychological">Tâm lý</SelectItem>
-                <SelectItem value="ballet">Múa ballet</SelectItem>
-                <SelectItem value="circus">Xiếc</SelectItem>
-                <SelectItem value="musical">Nhạc kịch</SelectItem>
+                <SelectItem value="Drame">Kịch</SelectItem>
+                <SelectItem value="Music">Âm nhạc</SelectItem>
+                <SelectItem value="Dance">Múa</SelectItem>
+                <SelectItem value="Circus">Xiếc</SelectItem>
+                <SelectItem value="Comedy">Hài kịch</SelectItem>
+                <SelectItem value="Opera">Opera</SelectItem>
               </SelectContent>
             </Select>
           </div>

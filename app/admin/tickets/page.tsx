@@ -105,7 +105,7 @@ export default function AdminTicketsPage() {
       toDate.setFullYear(2029)
 
       const response = await api.get(
-        `/Bookings?CreatedAtFrom=${fromDate.toISOString()}&CreatedAtTo=${toDate.toISOString()}&Status=Completed`
+        `/Bookings?CreatedAtFrom=${fromDate.toISOString()}&CreatedAtTo=${toDate.toISOString()}&Status=Completed&PageSize=1000&SortColumn=createdAt&SortDir=Desc`
       )
 
       setBookings(response.data.contends)
@@ -433,9 +433,8 @@ export default function AdminTicketsPage() {
           </DialogHeader>
           {selectedTicket && (
             <Tabs defaultValue="info" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="info">Thông tin</TabsTrigger>
-                <TabsTrigger value="qr">Mã QR</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-1">
+                <TabsTrigger value="info">Thông tin</TabsTrigger> 
               </TabsList>
               <TabsContent value="info" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">

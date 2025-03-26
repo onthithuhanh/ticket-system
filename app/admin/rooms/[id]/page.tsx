@@ -166,8 +166,7 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
 
       <Tabs defaultValue="info" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="info">Thông tin</TabsTrigger>
-          <TabsTrigger value="seats">Quản lý ghế</TabsTrigger>
+          <TabsTrigger value="info">Thông tin</TabsTrigger> 
         </TabsList>
 
         <TabsContent value="info">
@@ -253,7 +252,7 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
                 </CardContent>
               </Card>
 
-              <Card>
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Hình ảnh</CardTitle>
                   <CardDescription>Hình ảnh của phòng</CardDescription>
@@ -275,7 +274,7 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
                     </div>
                   )}
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
           </div>
         </TabsContent>

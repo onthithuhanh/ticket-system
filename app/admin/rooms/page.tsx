@@ -278,12 +278,12 @@ export default function RoomsPage() {
                                 Chỉnh sửa
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            {/* <DropdownMenuItem>
                               <Link href={`/admin/rooms/${room.id}/seats`} className="flex w-full items-center">
                                 <MapPin className="mr-2 h-4 w-4" />
                                 Quản lý ghế
                               </Link>
-                            </DropdownMenuItem>
+                            </DropdownMenuItem> */}
                             <DropdownMenuSeparator />
                             <AlertDialog>
                               <AlertDialogTrigger asChild>

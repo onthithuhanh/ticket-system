@@ -11,14 +11,7 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 w-full border-b bg-background">
         <div className="container-custom flex h-16 items-center">
           <MainNav />
-          {/* <div className="ml-auto flex items-center space-x-4">
-            <Link href="/login">
-              <Button variant="outline">Đăng nhập</Button>
-            </Link>
-            <Link href="/register">
-              <Button>Đăng ký</Button>
-            </Link>
-          </div> */}
+        
         </div>
       </header>
       <main className="flex-1">

@@ -148,7 +148,7 @@ export default function CreateRoomPage() {
     setIsLoading(true)
 
     try {
-      const roomData = {
+      const roomData = { 
         name: formData.name,
         description: formData.description,
         location: formData.location,

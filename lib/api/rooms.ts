@@ -75,8 +75,7 @@ export interface GetRoomsResponse {
   contends: Room[]
 }
 
-export interface CreateRoomParams {
-  command: string;
+export interface CreateRoomParams { 
   name: string;
   description: string;
   location: string;

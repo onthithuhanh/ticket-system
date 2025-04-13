@@ -6,7 +6,7 @@ declare module 'react-image-upload' {
     multiple?: boolean;
     style?: React.CSSProperties;
   }
-
+ 
   const ImageUpload: ComponentType<ImageUploadProps>;
   export default ImageUpload;
 } 

@@ -145,8 +145,7 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
         return
       }
 
-      await roomsApi.updateRoom(parseInt(id), {
-        command: "UpdateRoom",
+      await roomsApi.updateRoom(parseInt(id), { 
         name: formData.name,
         category: formData.category as RoomCategory,
         status: formData.status as RoomStatus,

@@ -99,11 +99,25 @@ export default function EditShowtimePage({ params }: { params: Promise<{ id: str
     setIsSaving(true)
 
     try {
+      const priceVip = parseInt(formData.priceVip)
+      const priceNormal = parseInt(formData.priceNormal)
+      const priceEconomy = parseInt(formData.priceEconomy)
+
+      if (priceVip <= 10000 || priceNormal <= 10000 || priceEconomy <= 10000) {
+        toast({
+          title: "Lỗi",
+          description: "Giá vé phải lớn hơn 10,000 VNĐ",
+          variant: "destructive",
+        })
+        setIsSaving(false)
+        return
+      }
+
       const updatedShowtimeData: UpdateShowtimeParams = {
         startTime: new Date(formData.startTime).toISOString(),
-        priceVip: parseInt(formData.priceVip),
-        priceNormal: parseInt(formData.priceNormal),
-        priceEconomy: parseInt(formData.priceEconomy),
+        priceVip,
+        priceNormal,
+        priceEconomy,
         eventId: parseInt(formData.eventId),
         roomId: parseInt(formData.roomId),
       }
@@ -209,8 +223,9 @@ export default function EditShowtimePage({ params }: { params: Promise<{ id: str
                   type="number"
                   value={formData.priceVip}
                   onChange={(e) => handleInputChange("priceVip", e.target.value)}
+                  min="10000"
                   required
-                  disabled={isSaving || isLoading || !isEditable} /* Disabled if not editable */
+                  disabled={isSaving || isLoading || !isEditable}
                 />
               </div>
               <div className="space-y-2">
@@ -220,8 +235,9 @@ export default function EditShowtimePage({ params }: { params: Promise<{ id: str
                   type="number"
                   value={formData.priceNormal}
                   onChange={(e) => handleInputChange("priceNormal", e.target.value)}
+                  min="10000"
                   required
-                  disabled={isSaving || isLoading || !isEditable} /* Disabled if not editable */
+                  disabled={isSaving || isLoading || !isEditable}
                 />
               </div>
               <div className="space-y-2">
@@ -231,8 +247,9 @@ export default function EditShowtimePage({ params }: { params: Promise<{ id: str
                   type="number"
                   value={formData.priceEconomy}
                   onChange={(e) => handleInputChange("priceEconomy", e.target.value)}
+                  min="10000"
                   required
-                  disabled={isSaving || isLoading || !isEditable} /* Disabled if not editable */
+                  disabled={isSaving || isLoading || !isEditable}
                 />
               </div>
             </div>

@@ -74,11 +74,25 @@ export default function CreateShowtimePage() {
         return
       }
 
+      const priceVip = parseInt(formData.priceVip)
+      const priceNormal = parseInt(formData.priceNormal)
+      const priceEconomy = parseInt(formData.priceEconomy)
+
+      if (priceVip <= 10000 || priceNormal <= 10000 || priceEconomy <= 10000) {
+        toast({
+          title: "Lỗi",
+          description: "Giá vé phải lớn hơn 10,000 VNĐ",
+          variant: "destructive",
+        })
+        setIsLoading(false)
+        return
+      }
+
       const showtimeData: CreateShowtimeParams = {
         startTime: selectedDate.toISOString(),
-        priceVip: parseInt(formData.priceVip),
-        priceNormal: parseInt(formData.priceNormal),
-        priceEconomy: parseInt(formData.priceEconomy),
+        priceVip,
+        priceNormal,
+        priceEconomy,
         eventId: parseInt(formData.eventId),
         roomId: parseInt(formData.roomId),
       }
@@ -179,6 +193,7 @@ export default function CreateShowtimePage() {
                   type="number"
                   value={formData.priceVip}
                   onChange={(e) => handleInputChange("priceVip", e.target.value)}
+                  min="10000"
                   required
                 />
               </div>
@@ -189,6 +204,7 @@ export default function CreateShowtimePage() {
                   type="number"
                   value={formData.priceNormal}
                   onChange={(e) => handleInputChange("priceNormal", e.target.value)}
+                  min="10000"
                   required
                 />
               </div>
@@ -199,6 +215,7 @@ export default function CreateShowtimePage() {
                   type="number"
                   value={formData.priceEconomy}
                   onChange={(e) => handleInputChange("priceEconomy", e.target.value)}
+                  min="10000"
                   required
                 />
               </div>

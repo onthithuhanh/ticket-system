@@ -63,10 +63,12 @@ export interface Showtime {
 
 export interface GetShowtimesParams {
   search?: string
+  EventName?: string
   eventId?: number
   roomId?: number
   date?: string
   StartTimeFrom?: string
+  StartTimeTo?: string
   pageIndex: number
   pageSize: number
 }

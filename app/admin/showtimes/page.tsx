@@ -55,16 +55,46 @@ export default function AdminShowtimesPage() {
     }, 500) // Debounce search for 500ms
 
     return () => clearTimeout(timer)
-  }, [currentPage, searchTerm]) // Add other filters here if implemented
+  }, [currentPage, searchTerm, dateFilter]) // Add dateFilter to dependencies
 
   const fetchShowtimes = async () => {
     setIsLoading(true)
     try {
+      const today = new Date()
+      const startOfWeek = new Date(today)
+      startOfWeek.setDate(today.getDate() - today.getDay()) // Set to start of week (Sunday)
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 6) // Set to end of week (Saturday)
+      
+      let startTimeFrom = undefined
+      let startTimeTo = undefined
+      if (dateFilter === "today") {
+        // Set to start of today (00:00:00)
+        const startOfDay = new Date(today)
+        startOfDay.setHours(0, 0, 0, 0)
+        // Set to start of tomorrow (00:00:00)
+        const startOfTomorrow = new Date(today)
+        startOfTomorrow.setDate(today.getDate() + 1)
+        startOfTomorrow.setHours(0, 0, 0, 0)
+        
+        startTimeFrom = startOfDay.toISOString()
+        startTimeTo = startOfTomorrow.toISOString()
+      } else if (dateFilter === "week") {
+        // Set to start of week (00:00:00)
+        startOfWeek.setHours(0, 0, 0, 0)
+        // Set to start of next week (00:00:00)
+        endOfWeek.setHours(23, 59, 59, 999)
+        
+        startTimeFrom = startOfWeek.toISOString()
+        startTimeTo = endOfWeek.toISOString()
+      }
+
       const response: GetShowtimesResponse = await showtimesApi.getShowtimes({
         pageIndex: currentPage,
         pageSize,
-        search: searchTerm,
-        // Add other filter parameters here if implemented
+        EventName: searchTerm,
+        StartTimeFrom: startTimeFrom,
+        StartTimeTo: startTimeTo,
       })
       setShowtimes(response.contends)
       setTotalPages(response.totalPages)
@@ -140,7 +170,7 @@ export default function AdminShowtimesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            {/* <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
@@ -151,8 +181,8 @@ export default function AdminShowtimesPage() {
                 <SelectItem value="completed">Đã kết thúc</SelectItem>
                 <SelectItem value="cancelled">Đã hủy</SelectItem>
               </SelectContent>
-            </Select>
-            <Select value={roomFilter} onValueChange={setRoomFilter}>
+            </Select> */}
+            {/* <Select value={roomFilter} onValueChange={setRoomFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Phòng" />
               </SelectTrigger>
@@ -162,7 +192,7 @@ export default function AdminShowtimesPage() {
                 <SelectItem value="2">Sân khấu nhỏ</SelectItem>
                 <SelectItem value="3">Sân khấu ngoài trời</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
             <Select value={dateFilter} onValueChange={setDateFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Thời gian" />

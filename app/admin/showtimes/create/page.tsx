@@ -105,10 +105,12 @@ export default function CreateShowtimePage() {
       })
 
       router.push("/admin/showtimes")
-    } catch (error) {
+    } catch (error: any) {
+      console.log(error?.response?.data?.detail);
+
       toast({
         title: "Lỗi tạo xuất chiếu",
-        description: "Đã xảy ra lỗi khi tạo xuất chiếu. Vui lòng thử lại.",
+        description: error?.response ? error?.response?.data?.detail : "Đã xảy ra lỗi khi tạo xuất chiếu. Vui lòng thử lại.",
         variant: "destructive",
       })
     } finally {

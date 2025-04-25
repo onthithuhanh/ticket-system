@@ -1,18 +1,18 @@
 import { api } from "./api"
 
 export enum RoomStatus {
-  Active = "active",
-  Inactive = "inactive",
-  Maintenance = "maintenance",
-  Closed = "closed",
+  Active = "Active",
+  Inactive = "Inactive",
+  Maintenance = "Maintenance",
+  Closed = "Closed",
 }
 
 export enum RoomCategory {
-  Stage = "stage",
-  Studio = "studio",
-  Outdoor = "outdoor",
-  Hall = "hall",
-  Vip = "vip",
+  Stage = "Stage",
+  Studio = "Studio",
+  Outdoor = "Outdoor",
+  Hall = "Hall",
+  Vip = "Vip",
 }
 
 export enum SeatCategory {
@@ -30,7 +30,7 @@ export interface RoomImage {
 }
 
 export interface RoomSeat {
-  status: "Available" | "Unavailable" | "Reserved";
+  status: "Available" | "Blocked" | "Reserved";
   category: SeatCategory;
 }
 
@@ -43,6 +43,7 @@ export interface Room {
   length: number
   width: number
   height: number
+  numberSeatsOfRow: number
   status: RoomStatus
   category: RoomCategory
   roomImages: RoomImage[]
@@ -53,7 +54,7 @@ export interface Room {
 export interface Seat {
   id: number
   category: SeatCategory
-  status: "Available" | "Unavailable" | "Reserved"
+  status: "Available" | "Blocked" | "Reserved"
 }
 
 export interface GetRoomsParams {
@@ -75,17 +76,20 @@ export interface GetRoomsResponse {
 }
 
 export interface CreateRoomParams {
-  name: string
-  category: RoomCategory
-  status: RoomStatus
-  location: string
-  capacity: number
-  description: string
-  roomAmenities: { amenityId: number }[]
-  length: number
-  width: number
-  height: number
-  seats: Seat[]
+  command: string;
+  name: string;
+  description: string;
+  location: string;
+  capacity: number;
+  length: number;
+  width: number;
+  height: number;
+  numberSeatsOfRow: number;
+  status: RoomStatus;
+  category: RoomCategory;
+  roomAmenities: Array<{ amenityId: number }>;
+  roomImages: any[];
+  seats: Seat[];
 }
 
 export const roomsApi = {

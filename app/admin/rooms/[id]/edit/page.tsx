@@ -25,7 +25,7 @@ interface Amenity {
 interface Seat {
   id: number
   category: SeatCategory
-  status: "Available" | "Unavailable" | "Reserved"
+  status: "Available" | "Blocked" | "Reserved"
 }
 
 export default function EditRoomPage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,6 +47,7 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
     length: "",
     width: "",
     height: "",
+    numberSeatsOfRow: "",
   })
 
   useEffect(() => {
@@ -57,6 +58,8 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
           amenitiesApi.getAmenities()
         ])
         setAmenities(amenitiesData)
+        console.log(123,room);
+        
         setFormData({
           name: room.name,
           category: room.category,
@@ -68,6 +71,7 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
           length: room.length.toString(),
           width: room.width.toString(),
           height: room.height.toString(),
+          numberSeatsOfRow: room.numberSeatsOfRow.toString(),
         })
 
         // Set seats from API response
@@ -101,7 +105,7 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
   }
 
   const getSeatColor = (seat: Seat) => {
-    if (seat.status === "Unavailable") return "bg-gray-200 opacity-50"
+    if (seat.status === "Blocked") return "bg-gray-200 opacity-50"
     if (seat.status === "Reserved") return "border-2 border-yellow-500 bg-white"
     
     switch (seat.category) {
@@ -128,6 +132,7 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
 
     try {
       await roomsApi.updateRoom(parseInt(id), {
+        command: "UpdateRoom",
         name: formData.name,
         category: formData.category as RoomCategory,
         status: formData.status as RoomStatus,
@@ -138,6 +143,7 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
         length: parseFloat(formData.length),
         width: parseFloat(formData.width),
         height: parseFloat(formData.height),
+        numberSeatsOfRow: parseFloat(formData.numberSeatsOfRow),
         seats: seats
       })
 
@@ -325,6 +331,17 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="numberSeatsOfRow">Số hàng ghế *</Label>
+                  <Input
+                    id="numberSeatsOfRow"
+                    type="number"
+                    value={formData.numberSeatsOfRow}
+                    onChange={(e) => handleInputChange("numberSeatsOfRow", e.target.value)}
+                    placeholder="Nhập số hàng ghế"
+                    required
+                  />
+                </div>
                 {formData.length && formData.width && (
                   <div className="pt-4 border-t">
                     <div className="text-sm text-muted-foreground">
@@ -368,7 +385,12 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
                 </div>
 
                 <div className="flex justify-center">
-                  <div className="grid grid-cols-10 gap-2">
+                  <div className="grid gap-2"
+                  style={{ 
+                    gridTemplateColumns: `repeat(${formData.numberSeatsOfRow}, minmax(0, 1fr))`,
+                    maxWidth: '100%',
+                    overflowX: 'auto'
+                  }}>
                     {seats.map((seat) => (
                       <Popover key={seat.id}>
                         <PopoverTrigger asChild>
@@ -410,8 +432,7 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="Available">Có sẵn</SelectItem>
-                                      <SelectItem value="Unavailable">Không sử dụng</SelectItem>
-                                      <SelectItem value="Reserved">Đã đặt trước</SelectItem>
+                                      <SelectItem value="Blocked">Không sử dụng</SelectItem> 
                                     </SelectContent>
                                   </Select>
                                 </div>

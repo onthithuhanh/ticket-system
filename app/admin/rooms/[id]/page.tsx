@@ -90,7 +90,7 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
   }
 
   const getSeatColor = (seat: Seat) => {
-    if (seat.status === "Unavailable") return "bg-gray-200 opacity-50"
+    if (seat.status === "Blocked") return "bg-gray-200 opacity-50"
     if (seat.status === "Reserved") return "border-2 border-yellow-500 bg-white"
     
     switch (seat.category) {
@@ -309,31 +309,14 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
                     <div className="h-4 w-4 bg-gray-200 opacity-50 rounded-full" />
                     <span>Không sử dụng</span>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label>Số cột:</Label>
-                  <Select
-                    value={columnCount.toString()}
-                    onValueChange={(value) => setColumnCount(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-[100px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5 cột</SelectItem>
-                      <SelectItem value="10">10 cột</SelectItem>
-                      <SelectItem value="15">15 cột</SelectItem>
-                      <SelectItem value="20">20 cột</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                </div> 
               </div>
 
               <div className="flex justify-center">
                 <div 
                   className="grid gap-2" 
                   style={{ 
-                    gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                    gridTemplateColumns: `repeat(${room.numberSeatsOfRow}, minmax(0, 1fr))`,
                     maxWidth: '100%',
                     overflowX: 'auto'
                   }}
@@ -379,8 +362,7 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="Available">Có sẵn</SelectItem>
-                                    <SelectItem value="Unavailable">Không sử dụng</SelectItem>
-                                    <SelectItem value="Reserved">Đã đặt trước</SelectItem>
+                                    <SelectItem value="Blocked">Không sử dụng</SelectItem> 
                                   </SelectContent>
                                 </Select>
                               </div>

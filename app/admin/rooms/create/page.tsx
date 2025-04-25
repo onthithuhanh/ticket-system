@@ -24,11 +24,11 @@ interface Amenity {
 }
 
 interface Seat {
-  id: string;
+  id: number;
   row: number;
   column: number;
   category: SeatCategory;
-  status: "Available" | "Unavailable" | "Reserved";
+  status: "Available" | "Blocked" | "Reserved";
 }
 
 export default function CreateRoomPage() {
@@ -49,7 +49,7 @@ export default function CreateRoomPage() {
     length: "",
     width: "",
     height: "",
-    rows: "",
+    numberSeatsOfRow: "",
     columns: "",
   })
 
@@ -83,16 +83,16 @@ export default function CreateRoomPage() {
   }
 
   const generateSeats = () => {
-    const rows = parseInt(formData.rows)
+    const numberSeatsOfRow = parseInt(formData.numberSeatsOfRow)
     const columns = parseInt(formData.columns)
-    const totalSeats = rows * columns
+    const totalSeats = numberSeatsOfRow * columns
     const vipCount = Math.floor(totalSeats * 0.2)
     const normalCount = Math.floor(totalSeats * 0.3)
 
     const newSeats: Seat[] = []
     let seatIndex = 0
 
-    for (let row = 1; row <= rows; row++) {
+    for (let row = 1; row <= numberSeatsOfRow; row++) {
       for (let col = 1; col <= columns; col++) {
         let category = SeatCategory.Economy
         if (seatIndex < vipCount) {
@@ -102,7 +102,7 @@ export default function CreateRoomPage() {
         }
 
         newSeats.push({
-          id: `${row}-${col}`,
+          id: seatIndex + 1,
           row,
           column: col,
           category,
@@ -115,7 +115,7 @@ export default function CreateRoomPage() {
     setSeats(newSeats)
   }
 
-  const updateSeat = (seatId: string, updates: Partial<Seat>) => {
+  const updateSeat = (seatId: number, updates: Partial<Seat>) => {
     setSeats(prev => prev.map(seat => 
       seat.id === seatId ? { ...seat, ...updates } : seat
     ))
@@ -134,11 +134,13 @@ export default function CreateRoomPage() {
         length: parseFloat(formData.length),
         width: parseFloat(formData.width),
         height: parseFloat(formData.height),
+        numberSeatsOfRow: parseFloat(formData.numberSeatsOfRow),
         status: formData.status,
         category: formData.category,
         roomAmenities: formData.selectedAmenities.map(id => ({ amenityId: id })),
         roomImages: [], // Add image upload functionality later
         seats: seats.map(seat => ({
+          id: seat.id,
           status: seat.status,
           category: seat.category
         }))
@@ -347,12 +349,12 @@ export default function CreateRoomPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="rows">Số hàng ghế *</Label>
+                    <Label htmlFor="numberSeatsOfRow">Số hàng ghế *</Label>
                     <Input
-                      id="rows"
+                      id="numberSeatsOfRow"
                       type="number"
-                      value={formData.rows}
-                      onChange={(e) => handleInputChange("rows", e.target.value)}
+                      value={formData.numberSeatsOfRow}
+                      onChange={(e) => handleInputChange("numberSeatsOfRow", e.target.value)}
                       placeholder="Nhập số hàng ghế"
                       required
                     />
@@ -373,7 +375,7 @@ export default function CreateRoomPage() {
                 <Button 
                   type="button" 
                   onClick={generateSeats}
-                  disabled={!formData.rows || !formData.columns}
+                  disabled={!formData.numberSeatsOfRow || !formData.columns}
                 >
                   Tạo sơ đồ ghế
                 </Button>
@@ -381,7 +383,7 @@ export default function CreateRoomPage() {
                 {seats.length > 0 && (
                   <div className="mt-4">
                     <div className="grid gap-2">
-                      {Array.from({ length: parseInt(formData.rows) }, (_, rowIndex) => (
+                      {Array.from({ length: parseInt(formData.numberSeatsOfRow) }, (_, rowIndex) => (
                         <div key={rowIndex} className="flex gap-2">
                           {Array.from({ length: parseInt(formData.columns) }, (_, colIndex) => {
                             const seat = seats.find(s => s.row === rowIndex + 1 && s.column === colIndex + 1)
@@ -394,8 +396,7 @@ export default function CreateRoomPage() {
                                       ${seat.category === SeatCategory.Vip ? 'bg-purple-500 text-white' :
                                         seat.category === SeatCategory.Normal ? 'bg-blue-500 text-white' :
                                         'bg-gray-200 text-gray-700'}
-                                      ${seat.status === 'Unavailable' ? 'opacity-50' : ''}
-                                      ${seat.status === 'Reserved' ? 'border-2 border-yellow-500' : ''}`}
+                                      ${seat.status === 'Blocked' ? 'opacity-50' : ''} `}
                                   >
                                     {seat.id}
                                   </div>
@@ -432,7 +433,7 @@ export default function CreateRoomPage() {
                                             </SelectTrigger>
                                             <SelectContent>
                                               <SelectItem value="Available">Có sẵn</SelectItem>
-                                              <SelectItem value="Unavailable">Không sử dụng</SelectItem>
+                                              <SelectItem value="Blocked">Không sử dụng</SelectItem>
                                               <SelectItem value="Reserved">Đã đặt trước</SelectItem>
                                             </SelectContent>
                                           </Select>

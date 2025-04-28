@@ -107,6 +107,29 @@ export default function CheckInPage() {
 
   const handleCheckIn = async (ticketId: number) => {
     try {
+      const now = new Date()
+      const showTime = new Date(booking?.schedule.startTime || "")
+      const timeDiff = showTime.getTime() - now.getTime()
+      const minutesDiff = Math.floor(timeDiff / (1000 * 60))
+
+      if (minutesDiff > 30) {
+        toast({
+          title: "Lỗi",
+          description: "Chỉ có thể check-in trước 30 phút khi công chiếu",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (minutesDiff < -30) {
+        toast({
+          title: "Lỗi",
+          description: "Đã quá thời gian check-in (hơn 30 phút sau công chiếu)",
+          variant: "destructive",
+        })
+        return
+      }
+
       setIsCheckingIn(true)
       await api.put(`/CheckIns/ticket/${ticketId}`)
       toast({
@@ -130,6 +153,29 @@ export default function CheckInPage() {
     if (!booking) return
 
     try {
+      const now = new Date()
+      const showTime = new Date(booking.schedule.startTime)
+      const timeDiff = showTime.getTime() - now.getTime()
+      const minutesDiff = Math.floor(timeDiff / (1000 * 60))
+
+      if (minutesDiff > 30) {
+        toast({
+          title: "Lỗi",
+          description: "Chỉ có thể check-in trước 30 phút khi công chiếu",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (minutesDiff < -30) {
+        toast({
+          title: "Lỗi",
+          description: "Đã quá thời gian check-in (hơn 30 phút sau công chiếu)",
+          variant: "destructive",
+        })
+        return
+      }
+
       setIsCheckingIn(true)
       await api.put(`/CheckIns/booking/${booking.id}`)
       toast({
@@ -146,6 +192,30 @@ export default function CheckInPage() {
       })
     } finally {
       setIsCheckingIn(false)
+    }
+  }
+
+  const getCheckInStatus = (startTime: string) => {
+    const now = new Date()
+    const showTime = new Date(startTime)
+    const timeDiff = showTime.getTime() - now.getTime()
+    const minutesDiff = Math.floor(timeDiff / (1000 * 60))
+
+    if (minutesDiff > 30) {
+      return { 
+        canCheckIn: false, 
+        message: "Chưa đến thời gian check-in (30 phút trước công chiếu)" 
+      }
+    }
+    if (minutesDiff < -30) {
+      return { 
+        canCheckIn: false, 
+        message: "Đã quá thời gian check-in (hơn 30 phút sau công chiếu)" 
+      }
+    }
+    return { 
+      canCheckIn: true, 
+      message: "Có thể check-in" 
     }
   }
 
@@ -224,24 +294,32 @@ export default function CheckInPage() {
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold">Danh sách vé</h3>
                         {booking.tickets.some(ticket => !ticket.isUsed) && (
-                          <Button
-                            onClick={handleCheckInAll}
-                            disabled={isCheckingIn}
-                            className="gap-2"
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                            Check-in tất cả
-                          </Button>
+                          <>
+                            {getCheckInStatus(booking.schedule.startTime).canCheckIn ? (
+                              <Button
+                                onClick={handleCheckInAll}
+                                disabled={isCheckingIn}
+                                className="gap-2"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                Check-in tất cả
+                              </Button>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                {getCheckInStatus(booking.schedule.startTime).message}
+                              </Badge>
+                            )}
+                          </>
                         )}
                       </div>
                       {booking.tickets.map((ticket) => (
                         <div
                           key={ticket.id}
-                          className="flex items-center justify-between rounded-lg border p-4"
+                          className="flex flex-col items-start justify-between rounded-lg border p-4 sm:flex-row sm:items-center"
                         >
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
                             <div className="flex items-center gap-2">
-                              <span>Ghế {ticket.seat.id}</span>
+                              <span className="font-medium">Ghế {ticket.seat.id}</span>
                               {getSeatCategoryBadge(ticket.seat.category)}
                             </div>
                             {ticket.isUsed ? (
@@ -251,14 +329,22 @@ export default function CheckInPage() {
                             )}
                           </div>
                           {!ticket.isUsed && (
-                            <Button
-                              onClick={() => handleCheckIn(ticket.id)}
-                              disabled={isCheckingIn}
-                              className="gap-2"
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                              Xác nhận sử dụng
-                            </Button>
+                            <div className="mt-2 sm:mt-0">
+                              {getCheckInStatus(booking.schedule.startTime).canCheckIn ? (
+                                <Button
+                                  onClick={() => handleCheckIn(ticket.id)}
+                                  disabled={isCheckingIn}
+                                  className="gap-2"
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  Xác nhận sử dụng
+                                </Button>
+                              ) : (
+                                <Badge variant="outline" className="text-muted-foreground">
+                                  {getCheckInStatus(booking.schedule.startTime).message}
+                                </Badge>
+                              )}
+                            </div>
                           )}
                         </div>
                       ))}

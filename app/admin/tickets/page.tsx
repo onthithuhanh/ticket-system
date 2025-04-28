@@ -223,6 +223,19 @@ export default function AdminTicketsPage() {
     .filter((b) => b.status.toLowerCase() === "completed")
     .reduce((sum, b) => sum + b.totalPrice, 0)
 
+  const getSeatStatus = (ticket: Ticket, eventTime: string) => {
+    const now = new Date()
+    const eventDate = new Date(eventTime)
+    
+    if (ticket.isUsed) {
+      return { color: "text-red-500", label: "Đã sử dụng" }
+    }
+    if (now > eventDate) {
+      return { color: "text-gray-500", label: "Đã hết hạn" }
+    }
+    return { color: "text-green-500", label: "Chưa sử dụng" }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -281,6 +294,20 @@ export default function AdminTicketsPage() {
         <CardHeader>
           <CardTitle>Danh sách vé</CardTitle>
           <CardDescription>Quản lý tất cả vé đã bán trong hệ thống</CardDescription>
+          <div className="flex gap-4 mt-2">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <span className="text-sm">Đã sử dụng</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+              <span className="text-sm">Đã hết hạn</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span className="text-sm">Chưa sử dụng</span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-4 md:flex-row">
@@ -371,7 +398,14 @@ export default function AdminTicketsPage() {
                         <TableCell>
                           <div>
                             <div className="font-medium">
-                              {booking.tickets.map((t) => `Ghế ${t.seat.id}`).join(", ")}
+                              {booking.tickets.map((t) => {
+                                const status = getSeatStatus(t, booking.schedule?.startTime || "")
+                                return (
+                                  <span key={t.id} className={`${status.color} mr-2`}>
+                                    Ghế {t.seat.id}
+                                  </span>
+                                )
+                              })}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {booking.tickets.length} vé
@@ -396,16 +430,16 @@ export default function AdminTicketsPage() {
                                 Xem chi tiết
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {booking.status.toLowerCase() === "completed" && (
+                              {/* {booking.status.toLowerCase() === "completed" && (
                                 <DropdownMenuItem onClick={() => handleCancelTicket(booking.id)}>
                                   Hủy vé
                                 </DropdownMenuItem>
-                              )}
-                              {booking.status.toLowerCase() === "cancelled" && (
+                              )} */}
+                              {/* {booking.status.toLowerCase() === "cancelled" && (
                                 <DropdownMenuItem onClick={() => handleRefundTicket(booking.id)}>
                                   Hoàn tiền
                                 </DropdownMenuItem>
-                              )}
+                              )} */}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

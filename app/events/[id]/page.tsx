@@ -14,31 +14,46 @@ import { Footer } from "@/components/footer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { showtimesApi } from "@/lib/api/showtimes"
+
+interface Seat {
+  id: number
+  index: number
+  status: "Available" | "Blocked" | "Reserved"
+  category: "Vip" | "Normal" | "Economy"
+  isBooked: boolean
+}
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [event, setEvent] = useState<any>(null)
+  const [showtimes, setShowtimes] = useState<any[]>([])
   const [selectedShowtime, setSelectedShowtime] = useState<string>("")
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [showSeatSelection, setShowSeatSelection] = useState(false)
+  const [seats, setSeats] = useState<Seat[]>([])
+  const [selectedSeats, setSelectedSeats] = useState<Seat[]>([])
+  const [room, setRoom] = useState<any>(null)
   const resolvedParams = use(params)
   const { id } = resolvedParams
 
-  // Mock data for showtimes - sẽ được thay thế bằng API thực tế
-  const showtimes = [
-    { id: 1, time: "19:00", date: "2024-03-20" },
-    { id: 2, time: "20:00", date: "2024-03-20" },
-    { id: 3, time: "19:00", date: "2024-03-21" },
-    { id: 4, time: "20:00", date: "2024-03-21" },
-  ]
-
   useEffect(() => {
-    const fetchEvent = async () => {
+    const fetchData = async () => {
       try {
-        const response = await eventsApi.getEvent(parseInt(id))
-        setEvent(response)
+        // Fetch event details
+        const eventResponse = await eventsApi.getEvent(parseInt(id))
+        setEvent(eventResponse)
+
+        // Fetch upcoming showtimes
+        const showtimesResponse = await showtimesApi.getShowtimes({
+          eventId: parseInt(id),
+          StartTimeFrom: new Date().toISOString().split('T')[0],
+          pageIndex: 1,
+          pageSize: 10
+        })
+        setShowtimes(showtimesResponse.contends)
       } catch (error: any) {
         toast({
           title: "Lỗi",
@@ -51,14 +66,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       }
     }
 
-    fetchEvent()
+    fetchData()
   }, [id, router, toast])
 
   const handleShowtimeSelect = (showtimeId: string) => {
     setSelectedShowtime(showtimeId)
   }
 
-  const handleBookTickets = () => {
+  const handleBookTickets = async () => {
     if (!selectedShowtime) {
       toast({
         title: "Lỗi",
@@ -67,7 +82,94 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       })
       return
     }
-    setShowSeatSelection(true)
+
+    try {
+      const selectedShowtimeData = showtimes.find(s => s.id.toString() === selectedShowtime)
+      if (!selectedShowtimeData) return
+
+      const response = await fetch(`https://stellaway.runasp.net/api/Seats/room/${selectedShowtimeData.roomId}/schedule/${selectedShowtimeData.id}`)
+      const seatsData = await response.json()
+      setSeats(seatsData)
+      setRoom(selectedShowtimeData.room)
+      setShowSeatSelection(true)
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải thông tin ghế",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const getSeatColor = (seat: Seat) => {
+    if (selectedSeats.find(s => s.id === seat.id)) return "bg-green-500 text-white"
+    if (seat.isBooked) return "bg-gray-200 opacity-50 cursor-not-allowed"
+    if (seat.status === "Blocked") return "bg-gray-200 opacity-50 cursor-not-allowed"
+    
+    switch (seat.category) {
+      case "Vip":
+        return "bg-purple-500 text-white hover:bg-purple-600"
+      case "Normal":
+        return "bg-blue-500 text-white hover:bg-blue-600"
+      case "Economy":
+        return "bg-gray-200 text-gray-700 hover:bg-gray-300"
+      default:
+        return "bg-gray-200"
+    }
+  }
+
+  const handleSeatClick = (seat: Seat) => {
+    if (seat.isBooked || seat.status === "Blocked") return
+
+    setSelectedSeats(prev => {
+      const isSelected = prev.find(s => s.id === seat.id)
+      if (isSelected) {
+        return prev.filter(s => s.id !== seat.id)
+      }
+      return [...prev, seat]
+    })
+  }
+
+  const calculateTotalPrice = () => {
+    return selectedSeats.reduce((total, seat) => {
+      const selectedShowtimeData = showtimes.find(s => s.id.toString() === selectedShowtime)
+      if (!selectedShowtimeData) return total
+
+      switch (seat.category) {
+        case "Vip":
+          return total + selectedShowtimeData.priceVip
+        case "Normal":
+          return total + selectedShowtimeData.priceNormal
+        case "Economy":
+          return total + selectedShowtimeData.priceEconomy
+        default:
+          return total
+      }
+    }, 0)
+  }
+
+  const handlePayment = () => {
+    const selectedShowtimeData = showtimes.find(s => s.id.toString() === selectedShowtime)
+    if (!selectedShowtimeData) return
+
+    const seatsWithPrice = selectedSeats.map(seat => ({
+      ...seat,
+      price: seat.category === "Vip" 
+        ? selectedShowtimeData.priceVip 
+        : seat.category === "Normal" 
+          ? selectedShowtimeData.priceNormal 
+          : selectedShowtimeData.priceEconomy
+    }))
+
+    const queryParams = new URLSearchParams({
+      scheduleId: selectedShowtimeData.id.toString(),
+      seats: JSON.stringify(seatsWithPrice),
+      totalPrice: calculateTotalPrice().toString(),
+      eventName: event.name,
+      showtime: new Date(selectedShowtimeData.startTime).toLocaleString('vi-VN')
+    })
+
+    router.push(`/payment?${queryParams.toString()}`)
   }
 
   if (isLoading) {
@@ -95,7 +197,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </header>
       <main className="flex-1">
-        <div className="container px-4 py-8   m-auto">
+        <div className="container px-4 py-8 m-auto">
           <div className="flex items-center gap-4 mb-8">
             <Link href="/events">
               <Button variant="outline" size="icon">
@@ -167,13 +269,38 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                           onClick={() => handleShowtimeSelect(showtime.id.toString())}
                         >
                           <Calendar className="mr-2 h-4 w-4" />
-                          {showtime.date}
+                          {new Date(showtime.startTime).toLocaleDateString('vi-VN')}
                           <Clock className="ml-4 mr-2 h-4 w-4" />
-                          {showtime.time}
+                          {new Date(showtime.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                         </Button>
                       ))}
                     </div>
                   </div>
+
+                  {selectedShowtime && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="rounded-lg bg-gray-100 p-4 text-center">
+                          <div className="text-sm font-medium text-gray-500">VIP</div>
+                          <div className="mt-1 text-lg font-semibold">
+                            {showtimes.find(s => s.id.toString() === selectedShowtime)?.priceVip.toLocaleString('vi-VN')}đ
+                          </div>
+                        </div>
+                        <div className="rounded-lg bg-gray-100 p-4 text-center">
+                          <div className="text-sm font-medium text-gray-500">Thường</div>
+                          <div className="mt-1 text-lg font-semibold">
+                            {showtimes.find(s => s.id.toString() === selectedShowtime)?.priceNormal.toLocaleString('vi-VN')}đ
+                          </div>
+                        </div>
+                        <div className="rounded-lg bg-gray-100 p-4 text-center">
+                          <div className="text-sm font-medium text-gray-500">Tiết kiệm</div>
+                          <div className="mt-1 text-lg font-semibold">
+                            {showtimes.find(s => s.id.toString() === selectedShowtime)?.priceEconomy.toLocaleString('vi-VN')}đ
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <Button 
                     className="w-full" 
@@ -217,69 +344,23 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <CardTitle>Hình ảnh</CardTitle>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="all" className="w-full">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="all">Tất cả</TabsTrigger>
-                    <TabsTrigger value="poster">Poster</TabsTrigger>
-                    <TabsTrigger value="scene">Cảnh quay</TabsTrigger>
-                    <TabsTrigger value="behind">Hậu trường</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="all" className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <img
-                        src={event.thumbnail}
-                        alt="Thumbnail"
-                        className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => setSelectedImage(event.thumbnail)}
-                      />
-                      {event.eventImages?.map((image: { imageUrl: string }, index: number) => (
-                        <img
-                          key={index}
-                          src={image.imageUrl}
-                          alt={`Image ${index + 1}`}
-                          className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setSelectedImage(image.imageUrl)}
-                        />
-                      ))}
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="poster" className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <img
-                        src={event.thumbnail}
-                        alt="Poster"
-                        className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => setSelectedImage(event.thumbnail)}
-                      />
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="scene" className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {event.images?.slice(0, 4).map((image: string, index: number) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt={`Scene ${index + 1}`}
-                          className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setSelectedImage(image)}
-                        />
-                      ))}
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="behind" className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {event.images?.slice(4).map((image: string, index: number) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt={`Behind the scenes ${index + 1}`}
-                          className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setSelectedImage(image)}
-                        />
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <img
+                    src={event.thumbnail}
+                    alt="Thumbnail"
+                    className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setSelectedImage(event.thumbnail)}
+                  />
+                  {event.eventImages?.map((image: { imageUrl: string }, index: number) => (
+                    <img
+                      key={index}
+                      src={image.imageUrl}
+                      alt={`Image ${index + 1}`}
+                      className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => setSelectedImage(image.imageUrl)}
+                    />
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -314,9 +395,77 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <DialogHeader>
             <DialogTitle>Chọn ghế</DialogTitle>
           </DialogHeader>
-          <div className="p-4">
-            {/* TODO: Thêm component chọn ghế ở đây */}
-            <p>Component chọn ghế sẽ được thêm vào đây</p>
+          <div className="p-4 space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded-full bg-purple-500" />
+                <span>VIP</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded-full bg-blue-500" />
+                <span>Thường</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded-full bg-gray-200" />
+                <span>Tiết kiệm</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 bg-gray-200 opacity-50 rounded-full" />
+                <span>Không sử dụng</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded-full bg-green-500" />
+                <span>Đã chọn</span>
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <div 
+                className="grid gap-2" 
+                style={{ 
+                  gridTemplateColumns: `repeat(${room?.numberSeatsOfRow || 0}, minmax(0, 1fr))`,
+                  maxWidth: '100%',
+                  overflowX: 'auto'
+                }}
+              >
+                {seats.map((seat) => (
+                  <button
+                    key={seat.id}
+                    className={`h-8 w-8 rounded flex items-center justify-center text-xs font-medium ${getSeatColor(seat)}`}
+                    onClick={() => handleSeatClick(seat)}
+                    disabled={seat.isBooked || seat.status === "Blocked"}
+                  >
+                    {seat.id}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {selectedSeats.length > 0 && (
+              <div className="space-y-4">
+                <div className="border-t pt-4">
+                  <h3 className="font-medium mb-2">Ghế đã chọn:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSeats.map(seat => (
+                      <Badge key={seat.id} variant="secondary">
+                        Ghế {seat.id} - {seat.category}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-gray-500">Tổng số ghế: {selectedSeats.length}</p>
+                      <p className="text-lg font-semibold">Tổng tiền: {calculateTotalPrice().toLocaleString('vi-VN')}đ</p>
+                    </div>
+                    <Button onClick={handlePayment}>
+                      Tiếp tục thanh toán
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -45,7 +45,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: "/admin/users",
     },
     {
-      icon: ChartColumnStacked ,
+      icon: ChartColumnStacked,
       label: "Quản lý thể loại",
       href: "/admin/categories",
     },
@@ -58,17 +58,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: TicketCheck,
       label: "Quản lý vé",
       href: "/admin/tickets",
-    },    {
+    }, {
       icon: TicketCheck,
       label: "Quản giao dịch",
       href: "/admin/transactions",
-    },  
-        {
-      icon: Calendar,
-      label: "Quản lý vở kịch",
-      href: "/admin/plays",
     },
-     {
+    //{
+    //   icon: Calendar,
+    //   label: "Quản lý vở kịch",
+    //   href: "/admin/plays",
+    // },
+    {
       icon: Calendar,
       label: "Quản lý xuất chiếu",
       href: "/admin/showtimes",
@@ -103,9 +103,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <Link
                       key={i}
                       href={route.href}
-                      className={`flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent ${
-                        pathname === route.href ? "bg-accent" : ""
-                      }`}
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent ${pathname === route.href ? "bg-accent" : ""
+                        }`}
                       onClick={() => setOpen(false)}
                     >
                       <route.icon className="h-5 w-5" />
@@ -166,9 +165,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <Link
                   key={i}
                   href={route.href}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent ${
-                    pathname === route.href ? "bg-accent" : ""
-                  }`}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent ${pathname === route.href ? "bg-accent" : ""
+                    }`}
                 >
                   <route.icon className="h-5 w-5" />
                   {route.label}

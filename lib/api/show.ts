@@ -50,6 +50,31 @@ export interface CreateShowData {
   status?: 'draft' | 'pending' | 'approved' | 'cancelled';
 }
 
+export interface DashboardData {
+  revenue: {
+    currentMonthRevenue: number;
+    percentageChange: number;
+  };
+  ticketStatistic: {
+    currentTicketCount: number;
+    percentageChange: number;
+  };
+  userStatistic: {
+    currentUserCount: number;
+    lastMonthUserCount: number;
+    difference: number;
+  };
+  eventStatistic: {
+    currentEventCount: number;
+    lastMonthEventCount: number;
+    difference: number;
+  };
+  monthlyRevenues: {
+    month: number;
+    total: number;
+  }[];
+}
+
 export const showApi = {
   getAllShows: async () => {
     const response = await api.get('/shows');
@@ -79,5 +104,10 @@ export const showApi = {
   searchShows: async (query: string) => {
     const response = await api.get(`/shows/search?q=${query}`);
     return response.data;
+  },
+
+  getDashboardData: async () => {
+    const response = await api.get('/Dashboards');
+    return response.data as DashboardData;
   },
 }; 

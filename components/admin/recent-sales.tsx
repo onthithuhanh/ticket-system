@@ -1,63 +1,59 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { RecentTransaction } from "@/lib/api/Dashboard"
+import { memo } from "react"
 
-export function RecentSales() {
+interface RecentSalesProps {
+  transactions?: RecentTransaction[];
+}
+
+const RecentSales = memo(function RecentSales({ transactions }: RecentSalesProps) {
+  if (!transactions || transactions.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground">
+        Không có giao dịch gần đây
+      </div>
+    )
+  }
+
+  // Take only first 3 transactions
+  const displayTransactions = transactions.slice(0, 3)
+  // Calculate how many empty slots we need to fill
+  const emptySlots = 3 - displayTransactions.length
+
   return (
     <div className="space-y-8">
-      <div className="flex items-center">
-        <Avatar className="h-9 w-9">
-          <AvatarImage src="/placeholder.svg?height=36&width=36" alt="Avatar" />
-          <AvatarFallback>NT</AvatarFallback>
-        </Avatar>
-        <div className="ml-4 space-y-1">
-          <p className="text-sm font-medium leading-none">Nguyễn Thị Hương</p>
-          <p className="text-sm text-muted-foreground">huong.nguyen@example.com</p>
+      {displayTransactions.map((transaction) => (
+        <div key={transaction.id} className="flex items-center">
+          <Avatar className="h-9 w-9">
+            <AvatarImage src="/placeholder.svg?height=36&width=36" alt="Avatar" />
+            <AvatarFallback>
+              {transaction.user?.fullName?.charAt(0) || transaction.user?.userName?.charAt(0) || "U"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="ml-4 space-y-1">
+            <p className="text-sm font-medium leading-none">
+              {transaction.user?.fullName || transaction.user?.userName || "Khách hàng"}
+            </p>
+            <p className="text-sm text-muted-foreground">{transaction.user?.email || "Không có email"}</p>
+          </div>
+          <div className="ml-auto font-medium">+{transaction.totalPrice.toLocaleString()}đ</div>
         </div>
-        <div className="ml-auto font-medium">+500.000đ</div>
-      </div>
-      <div className="flex items-center">
-        <Avatar className="flex h-9 w-9 items-center justify-center space-y-0 border">
-          <AvatarImage src="/placeholder.svg?height=36&width=36" alt="Avatar" />
-          <AvatarFallback>TL</AvatarFallback>
-        </Avatar>
-        <div className="ml-4 space-y-1">
-          <p className="text-sm font-medium leading-none">Trần Văn Lâm</p>
-          <p className="text-sm text-muted-foreground">lam.tran@example.com</p>
+      ))}
+      {/* Add empty slots to maintain consistent spacing */}
+      {Array.from({ length: emptySlots }).map((_, index) => (
+        <div key={`empty-${index}`} className="flex items-center opacity-0">
+          <Avatar className="h-9 w-9">
+            <AvatarFallback>U</AvatarFallback>
+          </Avatar>
+          <div className="ml-4 space-y-1">
+            <p className="text-sm font-medium leading-none">Placeholder</p>
+            <p className="text-sm text-muted-foreground">placeholder@email.com</p>
+          </div>
+          <div className="ml-auto font-medium">+0đ</div>
         </div>
-        <div className="ml-auto font-medium">+300.000đ</div>
-      </div>
-      <div className="flex items-center">
-        <Avatar className="h-9 w-9">
-          <AvatarImage src="/placeholder.svg?height=36&width=36" alt="Avatar" />
-          <AvatarFallback>PH</AvatarFallback>
-        </Avatar>
-        <div className="ml-4 space-y-1">
-          <p className="text-sm font-medium leading-none">Phạm Minh Hiếu</p>
-          <p className="text-sm text-muted-foreground">hieu.pham@example.com</p>
-        </div>
-        <div className="ml-auto font-medium">+1.200.000đ</div>
-      </div>
-      <div className="flex items-center">
-        <Avatar className="h-9 w-9">
-          <AvatarImage src="/placeholder.svg?height=36&width=36" alt="Avatar" />
-          <AvatarFallback>LT</AvatarFallback>
-        </Avatar>
-        <div className="ml-4 space-y-1">
-          <p className="text-sm font-medium leading-none">Lê Thị Mai</p>
-          <p className="text-sm text-muted-foreground">mai.le@example.com</p>
-        </div>
-        <div className="ml-auto font-medium">+800.000đ</div>
-      </div>
-      <div className="flex items-center">
-        <Avatar className="h-9 w-9">
-          <AvatarImage src="/placeholder.svg?height=36&width=36" alt="Avatar" />
-          <AvatarFallback>VD</AvatarFallback>
-        </Avatar>
-        <div className="ml-4 space-y-1">
-          <p className="text-sm font-medium leading-none">Vũ Đức Anh</p>
-          <p className="text-sm text-muted-foreground">anh.vu@example.com</p>
-        </div>
-        <div className="ml-auto font-medium">+2.000.000đ</div>
-      </div>
+      ))}
     </div>
   )
-}
+})
+
+export { RecentSales }

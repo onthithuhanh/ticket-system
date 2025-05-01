@@ -1,36 +1,67 @@
+"use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Overview } from "@/components/admin/overview"
 import { RecentSales } from "@/components/admin/recent-sales"
 import { Button } from "@/components/ui/button"
 import { CalendarDays, Users, Ticket, DollarSign } from "lucide-react"
+import { dashboardApi } from "@/lib/api/Dashboard"
+import { useEffect, useState } from "react"
 
 export default function AdminDashboardPage() {
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const data = await dashboardApi.getDashboardData()
+        // Filter only successful transactions
+        const successfulTransactions = data.recentTransactions?.filter(
+          (transaction: any) => transaction.status === "Success"
+        ) || []
+        setDashboardData({
+          ...data,
+          recentTransactions: successfulTransactions
+        })
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Tổng quan</h1>
-        <div className="flex items-center gap-2">
-          <Button>Xuất báo cáo</Button>
-        </div>
       </div>
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-          <TabsTrigger value="analytics">Phân tích</TabsTrigger>
-          <TabsTrigger value="reports">Báo cáo</TabsTrigger>
+          {/* <TabsTrigger value="analytics">Phân tích</TabsTrigger>
+          <TabsTrigger value="reports">Báo cáo</TabsTrigger> */}
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
+                <CardTitle className="text-sm font-medium">Tổng doanh thu tháng này</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">152.000.000đ</div>
+                <div className="text-2xl font-bold">{dashboardData?.revenue.currentMonthRevenue.toLocaleString('vi-VN')}đ</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-500">+20.1%</span> so với tháng trước
+                  <span className={dashboardData?.revenue.percentageChange >= 0 ? "text-green-500" : "text-red-500"}>
+                    {dashboardData?.revenue.percentageChange >= 0 ? "+" : ""}{dashboardData?.revenue.percentageChange.toFixed(1)}%
+                  </span> so với tháng trước
                 </p>
               </CardContent>
             </Card>
@@ -40,9 +71,11 @@ export default function AdminDashboardPage() {
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">12</div>
+                <div className="text-2xl font-bold">{dashboardData?.eventStatistic.currentEventCount}</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-500">+2</span> so với tháng trước
+                  <span className={dashboardData?.eventStatistic.difference >= 0 ? "text-green-500" : "text-red-500"}>
+                    {dashboardData?.eventStatistic.difference >= 0 ? "+" : ""}{dashboardData?.eventStatistic.difference}
+                  </span> so với tháng trước
                 </p>
               </CardContent>
             </Card>
@@ -52,9 +85,11 @@ export default function AdminDashboardPage() {
                 <Ticket className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">2,345</div>
+                <div className="text-2xl font-bold">{dashboardData?.ticketStatistic.currentTicketCount}</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-500">+15.3%</span> so với tháng trước
+                  <span className={dashboardData?.ticketStatistic.percentageChange >= 0 ? "text-green-500" : "text-red-500"}>
+                    {dashboardData?.ticketStatistic.percentageChange >= 0 ? "+" : ""}{dashboardData?.ticketStatistic.percentageChange.toFixed(1)}%
+                  </span> so với tháng trước
                 </p>
               </CardContent>
             </Card>
@@ -64,9 +99,11 @@ export default function AdminDashboardPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">573</div>
+                <div className="text-2xl font-bold">{dashboardData?.userStatistic.currentUserCount}</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-500">+201</span> so với tháng trước
+                  <span className={dashboardData?.userStatistic.difference >= 0 ? "text-green-500" : "text-red-500"}>
+                    {dashboardData?.userStatistic.difference >= 0 ? "+" : ""}{dashboardData?.userStatistic.difference}
+                  </span> so với tháng trước
                 </p>
               </CardContent>
             </Card>
@@ -77,16 +114,18 @@ export default function AdminDashboardPage() {
                 <CardTitle>Tổng quan</CardTitle>
               </CardHeader>
               <CardContent className="pl-2">
-                <Overview />
+                <Overview data={dashboardData?.monthlyRevenues} />
               </CardContent>
             </Card>
             <Card className="col-span-3">
               <CardHeader>
                 <CardTitle>Giao dịch gần đây</CardTitle>
-                <CardDescription>Có 128 giao dịch trong tháng này</CardDescription>
+                <CardDescription>
+                  Có {dashboardData?.recentTransactions?.length || 0} giao dịch thành công trong tháng này
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <RecentSales />
+                <RecentSales transactions={dashboardData?.recentTransactions} />
               </CardContent>
             </Card>
           </div>

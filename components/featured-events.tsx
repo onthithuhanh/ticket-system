@@ -67,9 +67,9 @@ export function FeaturedEvents() {
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:grid-cols-3">
           {showtimes.map((showtime) => (
             <Card key={showtime.id} className="overflow-hidden">
-              {showtime.event?.eventImages?.[0]?.imageUrl && (
+              {showtime.event?.thumbnail && (
                 <img
-                  src={showtime.event.eventImages[0].imageUrl}
+                  src={showtime.event.thumbnail }
                   alt={showtime.event.name}
                   width={600}
                   height={400}
@@ -79,7 +79,6 @@ export function FeaturedEvents() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <Badge>{showtime.event?.category ? getCategoryText(showtime.event.category) : ''}</Badge>
-                  
                 </div>
                 <CardTitle className="line-clamp-1">{showtime.event?.name}</CardTitle>
                 <CardDescription className="line-clamp-2">
@@ -104,18 +103,18 @@ export function FeaturedEvents() {
                     <Users className="mr-2 h-4 w-4 opacity-70" />
                     <span>Sức chứa: {showtime.room?.capacity} người</span>
                   </div>
-                  {showtime.room?.roomAmenities && showtime.room.roomAmenities.length > 0 && (
-                    <div className="flex items-center">
-                      <Info className="mr-2 h-4 w-4 opacity-70" />
-                      <span className="flex flex-wrap gap-1">
-                        {showtime.room.roomAmenities.map((amenity) => (
+                  <div className="flex items-start">
+                    <Info className="mr-2 h-4 w-4 opacity-70 mt-1" />
+                    <div className="flex-1">
+                      <div className="flex flex-wrap gap-1 h-[48px] overflow-hidden">
+                        {showtime.room?.roomAmenities?.map((amenity) => (
                           <Badge key={amenity.amenityId} variant="secondary" className="text-xs">
                             {amenity.amenity.name}
                           </Badge>
                         ))}
-                      </span>
+                      </div>
                     </div>
-                  )}
+                  </div>
                   <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
                     <div className="rounded bg-gray-100 p-1 text-center">
                       <div className="font-semibold">VIP</div>

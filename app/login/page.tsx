@@ -45,7 +45,13 @@ export default function LoginPage() {
       console.log(response)
       localStorage.setItem("user", JSON.stringify(response)) 
       toast.success("Đăng nhập thành công") 
-      router.push("/") // Chuyển hướng sau khi đăng nhập thành công
+      
+      // Check if user has admin role
+      if (response.userName?.includes("admin")) {
+        router.push("/admin/events")
+      } else {
+        router.push("/")
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Đăng nhập thất bại")
     } finally {

@@ -63,11 +63,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: "Quản giao dịch",
       href: "/admin/transactions",
     },
-    //{
-    //   icon: Calendar,
-    //   label: "Quản lý vở kịch",
-    //   href: "/admin/plays",
-    // },
+    {
+      icon: Calendar,
+      label: "Check in vé",
+      href: "/admin/check-in",
+    },
     {
       icon: Calendar,
       label: "Quản lý xuất chiếu",

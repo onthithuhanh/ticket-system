@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft } from "lucide-react"
 import { eventsApi, Event } from "@/lib/api/events"
-import { roomsApi, Room } from "@/lib/api/rooms"
+import { roomsApi, Room, RoomStatus } from "@/lib/api/rooms"
 import { showtimesApi, CreateShowtimeParams } from "@/lib/api/showtimes"
 
 export default function CreateShowtimePage() {
@@ -33,8 +33,8 @@ export default function CreateShowtimePage() {
     const loadData = async () => {
       try {
         const [eventsResponse, roomsResponse] = await Promise.all([
-          eventsApi.getEvents({ pageIndex: 1, pageSize: 100 }),
-          roomsApi.getRooms({ pageIndex: 1, pageSize: 100 })
+          eventsApi.getEvents({ pageIndex: 1, pageSize: 100, isCancelled: false }),
+          roomsApi.getRooms({ pageIndex: 1, pageSize: 100, status: RoomStatus.Active })
         ])
         setEvents(eventsResponse.contends)
         setRooms(roomsResponse.contends)
@@ -59,8 +59,23 @@ export default function CreateShowtimePage() {
     setIsLoading(true)
 
     try {
+      const selectedDate = new Date(formData.startTime)
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      tomorrow.setHours(0, 0, 0, 0)
+
+      if (selectedDate < tomorrow) {
+        toast({
+          title: "Lỗi",
+          description: "Thời gian bắt đầu phải là ngày mai trở đi",
+          variant: "destructive",
+        })
+        setIsLoading(false)
+        return
+      }
+
       const showtimeData: CreateShowtimeParams = {
-        startTime: new Date(formData.startTime).toISOString(),
+        startTime: selectedDate.toISOString(),
         priceVip: parseInt(formData.priceVip),
         priceNormal: parseInt(formData.priceNormal),
         priceEconomy: parseInt(formData.priceEconomy),
@@ -147,6 +162,11 @@ export default function CreateShowtimePage() {
                 type="datetime-local"
                 value={formData.startTime}
                 onChange={(e) => handleInputChange("startTime", e.target.value)}
+                min={(() => {
+                  const tomorrow = new Date()
+                  tomorrow.setDate(tomorrow.getDate() + 1)
+                  return tomorrow.toISOString().slice(0, 16)
+                })()}
                 required
               />
             </div>

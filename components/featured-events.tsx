@@ -16,7 +16,7 @@ export function FeaturedEvents() {
       try {
         const response = await showtimesApi.getShowtimes({
           pageIndex: 1,
-          pageSize: 3,
+          pageSize: 9,
           StartTimeFrom: new Date().toISOString().split('T')[0]
         })
         setShowtimes(response.contends)
@@ -35,8 +35,8 @@ export function FeaturedEvents() {
   }
 
   return (
-    <section className="w-full py-12 md:py-24 lg:py-32">
-      <div className="container px-4 md:px-6 m-auto;">
+    <section className="w-full py-12 md:py-24 lg:py-32  ">
+      <div className="container px-4 md:px-6 m-auto">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Sự Kiện Nổi Bật</h2>
@@ -60,9 +60,7 @@ export function FeaturedEvents() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <Badge>{showtime.event?.category}</Badge>
-                  {showtime.event?.isCancelled && (
-                    <Badge variant="destructive">Đã Hủy</Badge>
-                  )}
+                  
                 </div>
                 <CardTitle className="line-clamp-1">{showtime.event?.name}</CardTitle>
                 <CardDescription className="line-clamp-2">
@@ -118,7 +116,7 @@ export function FeaturedEvents() {
               <CardFooter>
                 <Link href={`/events/${showtime.eventId}`} className="w-full">
                   <Button className="w-full"  >
-                    {showtime.event?.isCancelled ? 'Đã Hủy' : 'Đặt Vé'}
+                  Đặt Vé
                   </Button>
                 </Link>
               </CardFooter>

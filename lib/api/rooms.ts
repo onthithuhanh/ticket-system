@@ -60,7 +60,7 @@ export interface Seat {
 export interface GetRoomsParams {
   search?: string
   status?: RoomStatus
-  category?: RoomCategory
+  category?: RoomCategory 
   pageIndex: number
   pageSize: number
 }

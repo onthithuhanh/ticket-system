@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Search, Download, Eye, MoreHorizontal, DollarSign, CreditCard, TrendingUp } from "lucide-react"
+import { Search, Download, Eye, MoreHorizontal, DollarSign, CreditCard, ChevronLeft, ChevronRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
   DropdownMenu,
@@ -18,8 +18,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import axios from "axios"
-import { api } from "@/lib/api"
+import { api } from "@/lib/api" 
+import { useDebounce } from "@/hooks/use-debounce"
 
 interface Booking {
   id: string
@@ -76,10 +76,12 @@ export default function AdminTransactionsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
 
   useEffect(() => {
     fetchBookings()
-  }, [currentPage])
+  }, [currentPage, debouncedSearchTerm, statusFilter, paymentMethodFilter])
 
   const fetchBookings = async () => {
     try {
@@ -89,14 +91,22 @@ export default function AdminTransactionsPage() {
       const toDate = new Date()
       toDate.setFullYear(2029)
 
-      const response = await api.get(`/Bookings?CreatedAtFrom=${fromDate.toISOString()}&CreatedAtTo=${toDate.toISOString()}&pageIndex=${currentPage - 1}&pageSize=10`);
-   
-      console.log(response.data.contends);
+      let url = `/Bookings?CreatedAtFrom=${fromDate.toISOString()}&CreatedAtTo=${toDate.toISOString()}&pageIndex=${currentPage}&pageSize=10`
       
-     
- 
+      if (debouncedSearchTerm) {
+        url += `&searchTerm=${encodeURIComponent(debouncedSearchTerm)}`
+      }
+      if (statusFilter !== 'all') {
+        url += `&Status=${statusFilter}`
+      }
+      if (paymentMethodFilter !== 'all') {
+        url += `&method=${paymentMethodFilter}`
+      }
+
+      const response = await api.get(url)
       setBookings(response.data.contends)
       setTotalPages(response.data.totalPages)
+      setTotalItems(response.data.totalItems)
     } catch (error) {
       toast({
         title: "Lỗi",
@@ -107,16 +117,6 @@ export default function AdminTransactionsPage() {
       setIsLoading(false)
     }
   }
-
-  const filteredTransactions = bookings.filter((booking) => {
-    const matchesSearch =
-      (booking.user?.fullName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (booking.user?.email?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (booking.id?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || (booking.status?.toLowerCase() || "") === statusFilter
-    const matchesPaymentMethod = paymentMethodFilter === "all" || (booking.method?.toLowerCase() || "") === paymentMethodFilter
-    return matchesSearch && matchesStatus && matchesPaymentMethod
-  })
 
   const handleViewTransaction = (booking: Booking) => {
     setSelectedTransaction(booking)
@@ -159,22 +159,20 @@ export default function AdminTransactionsPage() {
   }
 
   // Thống kê
-  const totalTransactions = bookings.length
-  const completedTransactions = bookings.filter((b) => b.status?.toLowerCase() === "completed").length
-  const pendingTransactions = bookings.filter((b) => b.status?.toLowerCase() === "pending").length
-  const failedTransactions = bookings.filter((b) => b.status?.toLowerCase() === "failed").length
+  const totalTransactions = totalItems
+  const completedTransactions = bookings.filter((b) => b.status?.toLowerCase() === "success").length
   const totalRevenue = bookings
-    .filter((b) => b.status?.toLowerCase() === "completed")
+    .filter((b) => b.status?.toLowerCase() === "success")
     .reduce((sum, b) => sum + b.totalPrice, 0)
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Quản lý giao dịch</h1>
-        <Button>
+        {/* <Button>
           <Download className="mr-2 h-4 w-4" />
           Xuất báo cáo
-        </Button>
+        </Button> */}
       </div>
 
       {/* Thống kê tổng quan */}
@@ -188,20 +186,12 @@ export default function AdminTransactionsPage() {
             <div className="text-2xl font-bold">{totalTransactions}</div>
           </CardContent>
         </Card>
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Thành công</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{completedTransactions}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Chờ xử lý</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{pendingTransactions}</div>
           </CardContent>
         </Card>
         <Card>
@@ -212,7 +202,7 @@ export default function AdminTransactionsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{totalRevenue.toLocaleString()}đ</div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       <Card>
@@ -238,21 +228,20 @@ export default function AdminTransactionsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="success">Thành công</SelectItem>
-                <SelectItem value="pending">Chờ xử lý</SelectItem>
-                <SelectItem value="failed">Thất bại</SelectItem>
+                <SelectItem value="Completed">Thành công</SelectItem> 
+                <SelectItem value="Failed">Thất bại</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+            {/* <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Phương thức" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả phương thức</SelectItem>
                 <SelectItem value="vnpay">VNPay</SelectItem>
-                {/* <SelectItem value="momo">Ví MoMo</SelectItem> */}
+                <SelectItem value="momo">MoMo</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
           </div>
           <div className="mt-6 rounded-md border">
             <Table>
@@ -271,18 +260,21 @@ export default function AdminTransactionsPage() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">
-                      Đang tải dữ liệu...
+                    <TableCell colSpan={8} className="text-center py-8">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span className="ml-2">Đang tải dữ liệu...</span>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : filteredTransactions.length === 0 ? (
+                ) : bookings.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">
+                    <TableCell colSpan={8} className="text-center py-8">
                       Không tìm thấy giao dịch nào
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTransactions.map((booking) => (
+                  bookings.map((booking) => (
                     <TableRow key={booking.id}>
                       <TableCell className="font-medium">{booking.id}</TableCell>
                       <TableCell>
@@ -301,7 +293,7 @@ export default function AdminTransactionsPage() {
                         <div className="font-medium">{getPaymentMethodText(booking.method)}</div>
                       </TableCell>
                       <TableCell>{getStatusBadge(booking.status)}</TableCell>
-                      <TableCell>{new Date(booking.createdAt).toLocaleString()}</TableCell>
+                      <TableCell>{new Date(booking.createdAt).toLocaleString()}//{booking.createdAt}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -316,12 +308,6 @@ export default function AdminTransactionsPage() {
                               <Eye className="mr-2 h-4 w-4" />
                               Xem chi tiết
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {booking.status?.toLowerCase() === "completed" && (
-                              <DropdownMenuItem onClick={() => handleRefundTransaction(booking.id)}>
-                                Hoàn tiền
-                              </DropdownMenuItem>
-                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -333,28 +319,32 @@ export default function AdminTransactionsPage() {
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Hiển thị {filteredTransactions.length} trên tổng số {bookings.length} giao dịch
-          </p>
+          <div className="text-sm text-muted-foreground">
+            Hiển thị {bookings.length} trên tổng số {totalItems} giao dịch
+          </div>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
-              disabled={currentPage === 1}
+              disabled={currentPage === 1 || isLoading}
               onClick={() => setCurrentPage(currentPage - 1)}
             >
+              <ChevronLeft className="h-4 w-4" />
               Trước
             </Button>
-            <Button variant="outline" size="sm">
-              {currentPage}
-            </Button>
+            <div className="flex items-center gap-1">
+              <span className="text-sm">Trang</span>
+              <span className="text-sm font-medium">{currentPage}</span>
+              <span className="text-sm">/ {totalPages}</span>
+            </div>
             <Button
               variant="outline"
               size="sm"
-              disabled={currentPage === totalPages}
+              disabled={currentPage === totalPages || isLoading}
               onClick={() => setCurrentPage(currentPage + 1)}
             >
               Sau
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </CardFooter>
@@ -362,7 +352,7 @@ export default function AdminTransactionsPage() {
 
       {/* Dialog chi tiết giao dịch */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px]  max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chi tiết giao dịch {selectedTransaction?.id}</DialogTitle>
             <DialogDescription>Thông tin chi tiết về giao dịch thanh toán</DialogDescription>
@@ -384,10 +374,10 @@ export default function AdminTransactionsPage() {
                       <span className="text-muted-foreground">Phương thức:</span>{" "}
                       {getPaymentMethodText(selectedTransaction.method)}
                     </p>
-                    <p>
-                      <span className="text-muted-foreground">Trạng thái:</span>{" "}
+                    <div className="flex items-center">
+                      <span className="text-muted-foreground mr-2">Trạng thái:</span>{" "}
                       {getStatusBadge(selectedTransaction.status)}
-                    </p>
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -417,7 +407,7 @@ export default function AdminTransactionsPage() {
                     {selectedTransaction.tickets.map((ticket) => (
                       <div key={ticket.id} className="border-b pb-2">
                         <p>
-                          <span className="text-muted-foreground">Ghế:</span> {ticket.seat.index} -{" "}
+                          <span className="text-muted-foreground">Ghế:</span> {ticket.seat.id} -{" "}
                           {ticket.seat.category}
                         </p>
                         <p>

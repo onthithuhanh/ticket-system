@@ -24,8 +24,15 @@ import { api } from "@/lib/api"
 interface Seat {
   id: number
   index: number
-  status: string
-  category: string
+  status: "Available" | "Blocked" | "Reserved"
+  category: "Vip" | "Normal" | "Economy"
+  isBooked: boolean
+}
+
+interface Room {
+  id: number
+  name: string
+  location: string
 }
 
 interface Ticket {
@@ -63,10 +70,7 @@ interface Booking {
       id: number
       name: string
     }
-    room: {
-      name: string
-      location: string
-    }
+    room: Room
   }
   tickets: Ticket[]
 }
@@ -91,10 +95,18 @@ export default function AdminTicketsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [events, setEvents] = useState<string[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(5)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const [userId, setUserId] = useState("")
+  const [scheduleId, setScheduleId] = useState("")
+  const [eventId, setEventId] = useState("")
+  const [seatDetails, setSeatDetails] = useState<{ [key: number]: Seat }>({})
 
   useEffect(() => {
     fetchBookings()
-  }, [])
+  }, [currentPage, pageSize, userId, scheduleId, eventId, searchTerm, statusFilter, eventFilter])
 
   const fetchBookings = async () => {
     try {
@@ -104,11 +116,21 @@ export default function AdminTicketsPage() {
       const toDate = new Date()
       toDate.setFullYear(2029)
 
-      const response = await api.get(
-        `/Bookings?CreatedAtFrom=${fromDate.toISOString()}&CreatedAtTo=${toDate.toISOString()}&Status=Completed&PageSize=1000&SortColumn=createdAt&SortDir=Desc`
-      )
+      let url = `/Bookings?CreatedAtFrom=${fromDate.toISOString()}&CreatedAtTo=${toDate.toISOString()}&PageSize=${pageSize}&PageIndex=${currentPage}&SortColumn=createdAt&SortDir=Desc&Status=Completed`
+        console.log(url);
+        
+      if (userId) url += `&UserId=${userId}`
+      if (scheduleId) url += `&ScheduleId=${scheduleId}`
+      if (eventId) url += `&EventId=${eventId}`
+      if (searchTerm) url += `&SearchTerm=${searchTerm}`
+      if (statusFilter !== "all") url += `&Status=${statusFilter}`
+      if (eventFilter !== "all") url += `&EventName=${eventFilter}`
+
+      const response = await api.get(url)
 
       setBookings(response.data.contends)
+      setTotalPages(response.data.totalPages)
+      setTotalItems(response.data.totalItems)
       
       // Extract unique event names
       const uniqueEvents = Array.from(
@@ -116,28 +138,45 @@ export default function AdminTicketsPage() {
       ).filter(Boolean) as string[]
       setEvents(uniqueEvents)
     } catch (error) {
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách vé",
-        variant: "destructive",
-      })
+      // toast({
+      //   title: "Lỗi",
+      //   description: "Không thể tải danh sách vé",
+      //   variant: "destructive",
+      // })
     } finally {
       setIsLoading(false)
     }
   }
 
-  const filteredBookings = bookings.filter((booking) => {
-    const matchesSearch =
-      booking.user?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.id.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesEvent = eventFilter === "all" || booking.schedule?.event?.name === eventFilter
-    return matchesSearch && matchesEvent
-  })
+  const fetchSeatDetails = async (roomId: number, scheduleId: number) => {
+    try {
+      const response = await api.get(`/Seats/room/${roomId}/schedule/${scheduleId}`)
+      const seats = response.data
+      const seatMap = seats.reduce((acc: { [key: number]: Seat }, seat: Seat) => {
+        acc[seat.id] = seat
+        return acc
+      }, {})
+      setSeatDetails(seatMap)
+    } catch (error) {
+      console.error("Error fetching seat details:", error)
+    }
+  }
 
-  const handleViewTicket = (booking: Booking) => {
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage)
+  }
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    setCurrentPage(1) // Reset to first page when changing page size
+  }
+
+  const handleViewTicket = async (booking: Booking) => {
     setSelectedTicket(booking)
     setIsDetailDialogOpen(true)
+    if (booking.schedule?.room?.id && booking.schedule?.id) {
+      await fetchSeatDetails(booking.schedule.room.id, booking.schedule.id)
+    }
   }
 
   const handleCancelTicket = async (bookingId: string) => {
@@ -226,7 +265,7 @@ export default function AdminTicketsPage() {
   const getSeatStatus = (ticket: Ticket, eventTime: string) => {
     const now = new Date()
     const eventDate = new Date(eventTime)
-    
+
     if (ticket.isUsed) {
       return { color: "text-red-500", label: "Đã sử dụng" }
     }
@@ -236,14 +275,30 @@ export default function AdminTicketsPage() {
     return { color: "text-green-500", label: "Chưa sử dụng" }
   }
 
+  const getSeatColor = (seat: Seat) => {
+    if (seat.isBooked) return "bg-red-200 opacity-50 cursor-not-allowed"
+    if (seat.status === "Blocked") return "bg-red-200 opacity-50 cursor-not-allowed"
+    
+    switch (seat.category) {
+      case "Vip":
+        return "bg-purple-500 text-white"
+      case "Normal":
+        return "bg-blue-500 text-white"
+      case "Economy":
+        return "bg-gray-200 text-gray-700"
+      default:
+        return "bg-gray-200"
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Quản lý vé</h1>
-        <Button>
+        {/* <Button>
           <Download className="mr-2 h-4 w-4" />
           Xuất báo cáo
-        </Button>
+        </Button> */}
       </div>
 
       {/* Thống kê tổng quan */}
@@ -253,39 +308,7 @@ export default function AdminTicketsPage() {
             <CardTitle className="text-sm font-medium">Tổng số vé</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalTickets}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Đã xác nhận</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{completedTickets}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Đã sử dụng</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{usedTickets}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Đã hủy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{cancelledTickets}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalRevenue.toLocaleString()}đ</div>
+            <div className="text-2xl font-bold">{totalItems}</div>
           </CardContent>
         </Card>
       </div>
@@ -311,17 +334,40 @@ export default function AdminTicketsPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-4 md:flex-row">
+          <div className="relative w-full md:w-96">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+              type="text"
+              placeholder="Tìm kiếm theo ID người dùng"
+              className="w-full pl-8"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            />
+            </div>
             <div className="relative w-full md:w-96">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                type="search"
-                placeholder="Tìm kiếm vé, khách hàng..."
-                className="w-full pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              type="text"
+              placeholder="Schedule ID"
+              className="w-full  pl-8"
+              value={scheduleId}
+              onChange={(e) => setScheduleId(e.target.value)}
+            />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <div className="relative w-full md:w-96">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+              type="text"
+              placeholder="Tìm kiếm theo ID Sự kiện "
+              className="w-full pl-8   "
+              value={eventId}
+              onChange={(e) => setEventId(e.target.value)}
+            />
+            </div>
+           
+         
+         
+            {/* <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
@@ -333,8 +379,8 @@ export default function AdminTicketsPage() {
                 <SelectItem value="cancelled">Đã hủy</SelectItem>
                 <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
               </SelectContent>
-            </Select>
-            <Select value={eventFilter} onValueChange={setEventFilter}>
+            </Select> */}
+            {/* <Select value={eventFilter} onValueChange={setEventFilter}>
               <SelectTrigger className="w-full md:w-[200px]">
                 <SelectValue placeholder="Sự kiện" />
               </SelectTrigger>
@@ -346,7 +392,7 @@ export default function AdminTicketsPage() {
                   </SelectItem>
                 ))}
               </SelectContent>
-            </Select>
+            </Select> */}
           </div>
           <div className="mt-6 rounded-md border">
             <Table>
@@ -355,6 +401,7 @@ export default function AdminTicketsPage() {
                   <TableHead>Mã vé</TableHead>
                   <TableHead>Khách hàng</TableHead>
                   <TableHead>Sự kiện</TableHead>
+                  <TableHead>Lịch trình</TableHead>
                   <TableHead>Ghế</TableHead>
                   <TableHead>Số tiền</TableHead>
                   <TableHead>Trạng thái</TableHead>
@@ -365,18 +412,18 @@ export default function AdminTicketsPage() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">
+                    <TableCell colSpan={9} className="text-center">
                       Đang tải dữ liệu...
                     </TableCell>
                   </TableRow>
-                ) : filteredBookings.length === 0 ? (
+                ) : bookings.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">
+                    <TableCell colSpan={9} className="text-center">
                       Không tìm thấy vé nào
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredBookings.map((booking) => {
+                  bookings.map((booking) => {
                     const { date, time } = formatDateTime(booking.schedule?.startTime || booking.createdAt)
                     return (
                       <TableRow key={booking.id}>
@@ -385,13 +432,23 @@ export default function AdminTicketsPage() {
                           <div>
                             <div className="font-medium">{booking.user?.fullName || booking.user?.userName}</div>
                             <div className="text-sm text-muted-foreground">{booking.user?.email}</div>
+                            <div className="text-sm text-muted-foreground">ID: {booking.user?.id}</div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div>
                             <div className="font-medium">{booking.schedule?.event?.name}</div>
+                            <div className="text-sm text-muted-foreground">ID: {booking.schedule?.event?.id}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">ID: {booking.schedule?.id}</div>
                             <div className="text-sm text-muted-foreground">
                               {date} - {time}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {booking.schedule?.room?.name} - {booking.schedule?.room?.location}
                             </div>
                           </div>
                         </TableCell>
@@ -402,7 +459,7 @@ export default function AdminTicketsPage() {
                                 const status = getSeatStatus(t, booking.schedule?.startTime || "")
                                 return (
                                   <span key={t.id} className={`${status.color} mr-2`}>
-                                    Ghế {t.seat.id}
+                                    Ghế {t.seat.id} ({t.seat.category})
                                   </span>
                                 )
                               })}
@@ -430,16 +487,6 @@ export default function AdminTicketsPage() {
                                 Xem chi tiết
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {/* {booking.status.toLowerCase() === "completed" && (
-                                <DropdownMenuItem onClick={() => handleCancelTicket(booking.id)}>
-                                  Hủy vé
-                                </DropdownMenuItem>
-                              )} */}
-                              {/* {booking.status.toLowerCase() === "cancelled" && (
-                                <DropdownMenuItem onClick={() => handleRefundTicket(booking.id)}>
-                                  Hoàn tiền
-                                </DropdownMenuItem>
-                              )} */}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -450,25 +497,51 @@ export default function AdminTicketsPage() {
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-        <CardFooter className="flex items-center justify-between">
+
+          <div className="mt-4 flex items-center justify-between">
+         <CardFooter className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Hiển thị {filteredBookings.length} trên tổng số {bookings.length} vé
+            Hiển thị {bookings.length} trên tổng số {totalItems} vé
           </p>
         </CardFooter>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Trước
+              </Button>
+              <span className="text-sm">
+                Trang {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+     
       </Card>
 
       {/* Dialog chi tiết vé */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="  max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chi tiết vé {selectedTicket?.id}</DialogTitle>
             <DialogDescription>Thông tin chi tiết về vé đã bán</DialogDescription>
           </DialogHeader>
           {selectedTicket && (
             <Tabs defaultValue="info" className="w-full">
-              <TabsList className="grid w-full grid-cols-1">
-                <TabsTrigger value="info">Thông tin</TabsTrigger> 
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="info">Thông tin</TabsTrigger>
+                <TabsTrigger value="seats">Sơ đồ ghế</TabsTrigger>
               </TabsList>
               <TabsContent value="info" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -487,7 +560,7 @@ export default function AdminTicketsPage() {
                       {formatDateTime(selectedTicket.schedule?.startTime).time}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Ghế: {selectedTicket.tickets.map((t: Ticket) => `Ghế ${t.seat.id}`).join(", ")}
+                      Phòng: {selectedTicket.schedule?.room?.name} - {selectedTicket.schedule?.room?.location}
                     </p>
                   </div>
                   <div>
@@ -503,28 +576,85 @@ export default function AdminTicketsPage() {
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-semibold">Trạng thái</h4>
-                    <div className="mb-2">{getStatusBadge(selectedTicket.status)}</div>
-                    {selectedTicket.tickets.some((t: Ticket) => t.isUsed) && (
-                      <p className="text-sm text-muted-foreground">Đã check-in</p>
-                    )}
+                    <h4 className="font-semibold">Thông tin ghế</h4>
+                    {selectedTicket.tickets.map((ticket: Ticket) => {
+                      const seatDetail = seatDetails[ticket.seat.id]
+                      return (
+                        <div key={ticket.id} className="mb-2">
+                          <p className="text-sm text-muted-foreground">
+                            Ghế {ticket.seat.id} - {seatDetail?.category || ticket.seat.category}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Trạng thái: {ticket.isUsed ? "Đã sử dụng" : "Chưa sử dụng"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Loại ghế: {
+                              seatDetail?.category === "Vip" ? "VIP" :
+                              seatDetail?.category === "Normal" ? "Thường" :
+                              seatDetail?.category === "Economy" ? "Tiết kiệm" : "Không xác định"
+                            }
+                          </p>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </TabsContent>
-              <TabsContent value="qr" className="space-y-4">
-                <div className="flex flex-col items-center space-y-4">
-                  {selectedTicket.tickets.map((ticket: Ticket) => (
-                    <div key={ticket.id} className="h-48 w-48 bg-gray-100 flex items-center justify-center rounded-lg">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">📱</div>
-                        <p className="text-sm text-muted-foreground">Mã QR: {ticket.qrCode}</p>
-                        <p className="text-sm text-muted-foreground">Ghế: {ticket.seat.id}</p>
-                      </div>
+              <TabsContent value="seats" className="space-y-4">
+                <div className="p-4 space-y-6">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 rounded-full bg-purple-500" />
+                      <span>VIP</span>
                     </div>
-                  ))}
-                  <p className="text-sm text-muted-foreground text-center">
-                    Khách hàng sử dụng mã QR này để check-in tại sự kiện
-                  </p>
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 rounded-full bg-blue-500" />
+                      <span>Thường</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 rounded-full bg-gray-200" />
+                      <span>Tiết kiệm</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 bg-red-200 rounded-full" />
+                      <span>Không sử dụng</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    className="grid gap-2 overflow-x-auto" 
+                    style={{ 
+                      gridTemplateColumns: `repeat(${selectedTicket.schedule?.room?.numberSeatsOfRow || 0}, minmax(0, 1fr))`,
+                      maxWidth: '100%'
+                    }}
+                  >
+                    {Object.values(seatDetails).map((seat) => (
+                      <div
+                        key={seat.id}
+                        className={`h-8 w-8 rounded flex items-center justify-center text-xs font-medium ${getSeatColor(seat)}`}
+                      >
+                        {seat.id}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4">
+                    <h4 className="font-semibold mb-2">Ghế đã đặt:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTicket.tickets.map((ticket: Ticket) => {
+                        const seatDetail = seatDetails[ticket.seat.id]
+                        return (
+                          <Badge key={ticket.id} variant="secondary">
+                            Ghế {ticket.seat.id} - {
+                              seatDetail?.category === "Vip" ? "VIP" :
+                              seatDetail?.category === "Normal" ? "Thường" :
+                              seatDetail?.category === "Economy" ? "Tiết kiệm" : "Không xác định"
+                            }
+                          </Badge>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>

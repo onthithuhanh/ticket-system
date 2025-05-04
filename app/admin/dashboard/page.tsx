@@ -3,26 +3,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Overview } from "@/components/admin/overview"
 import { RecentSales } from "@/components/admin/recent-sales"
-import { Button } from "@/components/ui/button"
 import { CalendarDays, Users, Ticket, DollarSign } from "lucide-react"
 import { dashboardApi } from "@/lib/api/Dashboard"
 import { useEffect, useState } from "react"
+import api from "@/lib/api/config"
 
 export default function AdminDashboardPage() {
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([])
+  const [isTransactionsLoading, setIsTransactionsLoading] = useState(true)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const data = await dashboardApi.getDashboardData()
-        // Filter only successful transactions
-        const successfulTransactions = data.recentTransactions?.filter(
-          (transaction: any) => transaction.status === "Success"
-        ) || []
         setDashboardData({
-          ...data,
-          recentTransactions: successfulTransactions
+          ...data
         })
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
@@ -31,11 +28,25 @@ export default function AdminDashboardPage() {
       }
     }
 
+    const fetchRecentTransactions = async () => {
+      try {
+        setIsTransactionsLoading(true)
+        const response = await api.get('/Bookings?SortColumn=createdAt&SortDir=Desc&PageSize=5&PageIndex=1&Status=Completed')
+        setRecentTransactions(response.data.contends)
+      } catch (error) {
+        console.error('Error fetching recent transactions:', error)
+      } finally {
+        setIsTransactionsLoading(false)
+      }
+    }
+
     fetchDashboardData()
+    fetchRecentTransactions()
+
   }, [])
 
   if (loading) {
-    return <div>Loading...</div>
+    return null // Let the loading.tsx handle the loading state
   }
 
   return (
@@ -46,8 +57,6 @@ export default function AdminDashboardPage() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-          {/* <TabsTrigger value="analytics">Phân tích</TabsTrigger>
-          <TabsTrigger value="reports">Báo cáo</TabsTrigger> */}
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -65,7 +74,7 @@ export default function AdminDashboardPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            {/* <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Sự kiện đang diễn ra</CardTitle>
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
@@ -78,7 +87,7 @@ export default function AdminDashboardPage() {
                   </span> so với tháng trước
                 </p>
               </CardContent>
-            </Card>
+            </Card> */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Vé đã bán</CardTitle>
@@ -120,37 +129,19 @@ export default function AdminDashboardPage() {
             <Card className="col-span-3">
               <CardHeader>
                 <CardTitle>Giao dịch gần đây</CardTitle>
-                <CardDescription>
-                  Có {dashboardData?.recentTransactions?.length || 0} giao dịch thành công trong tháng này
-                </CardDescription>
+            
               </CardHeader>
               <CardContent>
-                <RecentSales transactions={dashboardData?.recentTransactions} />
+                {isTransactionsLoading ? (
+                   <div className="text-center text-muted-foreground">Đang tải giao dịch...</div>
+                ) : recentTransactions.length === 0 ? (
+                   <div className="text-center text-muted-foreground">Không có giao dịch gần đây</div>
+                ) : (
+                  <RecentSales transactions={recentTransactions} />
+                )}
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-        <TabsContent value="analytics" className="space-y-4">
-          <Card className="col-span-3">
-            <CardHeader>
-              <CardTitle>Phân tích</CardTitle>
-              <CardDescription>Phân tích chi tiết về doanh thu và lượng khách</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Nội dung phân tích sẽ được hiển thị ở đây.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="reports" className="space-y-4">
-          <Card className="col-span-3">
-            <CardHeader>
-              <CardTitle>Báo cáo</CardTitle>
-              <CardDescription>Xem và tải xuống các báo cáo</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Nội dung báo cáo sẽ được hiển thị ở đây.</p>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

@@ -1,34 +1,16 @@
 import type React from "react"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import type { Metadata } from "next"
 import { Suspense } from "react"
 
-const inter = Inter({ subsets: ["latin"] })
-
-export const metadata: Metadata = {
-  title: "Hệ Thống Bán Vé Nhà Hát",
-  description: "Hệ thống quản lý và bán vé cho nhà hát kịch",
-  generator: 'v0.dev'
-}
-
-export default function RootLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="vi"  >
-      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
-        <Suspense fallback={null}>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            {children}
-            <Toaster />
-          </ThemeProvider>
-        </Suspense>
-      </body>
-    </html>
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <Suspense fallback={<div>Loading...</div>}>
+        {children}
+      </Suspense>
+    </div>
   )
 }

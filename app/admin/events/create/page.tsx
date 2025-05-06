@@ -33,7 +33,7 @@ export default function CreateEventPage() {
     actors: "",
     thumbnail: "",
     category: "Drame",
-    eventImages: [] as { imageUrl: string }[],
+    eventImages: [] as { id: number; imageUrl: string }[],
   })
   const [mainImage, setMainImage] = useState<ImagePreview | null>(null)
   const [additionalImages, setAdditionalImages] = useState<ImagePreview[]>([])
@@ -107,7 +107,7 @@ export default function CreateEventPage() {
       const eventImages = await uploadMultipleImages(
         additionalImages.map(img => img.file),
         "events"
-      ).then(urls => urls.map(url => ({ imageUrl: url })))
+      ).then(urls => urls.map((url, index) => ({ id: index + 1, imageUrl: url })))
 
       const data = {
         ...formData,
@@ -176,7 +176,10 @@ export default function CreateEventPage() {
                       <SelectContent>
                         <SelectItem value="Drame">Kịch</SelectItem>
                         <SelectItem value="Comedy">Hài kịch</SelectItem>
-                        <SelectItem value="Musical">Nhạc kịch</SelectItem>
+                        <SelectItem value="psychological">Tâm lý</SelectItem>
+                        <SelectItem value="Dance">Múa ballet</SelectItem>
+                        <SelectItem value="Circus">Xiếc</SelectItem>
+                        <SelectItem value="Music">Nhạc kịch</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

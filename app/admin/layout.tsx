@@ -1,10 +1,9 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Calendar, Users, TicketCheck, Settings, Menu, ChartColumnStacked, BookCopy } from "lucide-react"
 import {
@@ -25,8 +24,30 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const isMobile = useMobile()
   const [open, setOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user')
+    if (!storedUser) {
+      router.push('/login')
+      return
+    }
+
+    const userData = JSON.parse(storedUser)
+    if (!userData.isActive || userData.isDeleted) {
+      router.push('/login')
+      return
+    }
+
+    setUser(userData)
+  }, [router])
+
+  if (!user) {
+    return null // or a loading spinner
+  }
 
   const routes = [
     {
@@ -44,11 +65,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: "Quản lý người dùng",
       href: "/admin/users",
     },
-    {
-      icon: ChartColumnStacked,
-      label: "Quản lý thể loại",
-      href: "/admin/categories",
-    },
+    // {
+    //   icon: ChartColumnStacked,
+    //   label: "Quản lý thể loại",
+    //   href: "/admin/categories",
+    // },
     {
       icon: BookCopy,
       label: "Quản lý phòng",
@@ -124,16 +145,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Avatar" />
-                  <AvatarFallback>AD</AvatarFallback>
+                  <AvatarImage src={user.avatarUrl || "/placeholder.svg?height=32&width=32"} alt="Avatar" />
+                  <AvatarFallback>{user.userName?.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Admin</p>
-                  <p className="text-xs leading-none text-muted-foreground">admin@example.com</p>
+                  <p className="text-sm font-medium leading-none">{user.fullName}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -148,10 +169,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Link href="/login" className="flex w-full">
-                  Đăng xuất
-                </Link>
+              <DropdownMenuItem onClick={() => {
+                localStorage.removeItem('user')
+                router.push('/login')
+              }}>
+                Đăng xuất
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

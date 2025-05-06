@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
 import { CalendarDays, MapPin, Clock, Ticket, CheckCircle2, XCircle } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 interface Seat {
   id: number
@@ -64,13 +64,23 @@ interface Booking {
 export default function CheckInPage() {
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [bookingId, setBookingId] = useState("")
   const [booking, setBooking] = useState<Booking | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isCheckingIn, setIsCheckingIn] = useState(false)
 
-  const handleSearch = async () => {
-    if (!bookingId.trim()) {
+  useEffect(() => {
+    const id = searchParams.get('id')
+    if (id) {
+      setBookingId(id)
+      handleSearch(id)
+    }
+  }, [searchParams])
+
+  const handleSearch = async (id?: string) => {
+    const searchId = id || bookingId
+    if (!searchId.trim()) {
       toast({
         title: "Lỗi",
         description: "Vui lòng nhập mã đặt vé",
@@ -81,7 +91,7 @@ export default function CheckInPage() {
 
     try {
       setIsLoading(true)
-      const response = await api.get(`/Bookings/${bookingId}`)
+      const response = await api.get(`/Bookings/${searchId}`)
       setBooking(response.data)
     } catch (error) {
       toast({
@@ -182,7 +192,7 @@ export default function CheckInPage() {
                     onChange={(e) => setBookingId(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   />
-                  <Button onClick={handleSearch} disabled={isLoading}>
+                  <Button onClick={() => handleSearch()} disabled={isLoading}>
                     {isLoading ? "Đang tìm..." : "Tìm kiếm"}
                   </Button>
                 </div>

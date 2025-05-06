@@ -144,13 +144,16 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       const newEventImages = await uploadMultipleImages(
         additionalImages.map(img => img.file),
         "events"
-      ).then(urls => urls.map(url => ({ imageUrl: url })))
+      ).then(urls => urls.map((url, index) => ({ id: existingImages.length + index + 1, imageUrl: url })))
 
       const data = {
         ...formData,
         duration: parseInt(formData.duration),
         thumbnail: thumbnailUrl,
-        eventImages: [...existingImages, ...newEventImages],
+        eventImages: [
+          ...existingImages.map((img, index) => ({ ...img, id: index + 1 })),
+          ...newEventImages
+        ],
       }
 
       await eventsApi.updateEvent(parseInt(id), data)
@@ -210,10 +213,13 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       <SelectTrigger>
                         <SelectValue placeholder="Chọn thể loại" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Drame">Kịch</SelectItem>
+                      <SelectContent> 
+                        <SelectItem value="Drame">Kịch</SelectItem>  
                         <SelectItem value="Comedy">Hài kịch</SelectItem>
-                        <SelectItem value="Musical">Nhạc kịch</SelectItem>
+                        <SelectItem value="psychological">Tâm lý</SelectItem>
+                        <SelectItem value="Dance">Múa ballet</SelectItem>
+                        <SelectItem value="Circus">Xiếc</SelectItem>
+                        <SelectItem value="Music">Nhạc kịch</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

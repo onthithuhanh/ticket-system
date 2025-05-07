@@ -58,11 +58,13 @@ export interface Seat {
 }
 
 export interface GetRoomsParams {
-  search?: string
-  status?: RoomStatus
-  category?: RoomCategory 
-  pageIndex: number
-  pageSize: number
+  Search?: string
+  Status?: RoomStatus
+  Category?: RoomCategory 
+  PageIndex: number
+  PageSize: number
+  SortColumn?: string
+  SortDir?: "Asc" | "Desc"
 }
 
 export interface GetRoomsResponse {

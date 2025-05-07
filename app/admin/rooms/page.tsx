@@ -32,7 +32,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 5
+
+export interface GetRoomsParams {
+  Search?: string
+  Status?: RoomStatus
+  Category?: RoomCategory 
+  PageIndex: number
+  PageSize: number
+}
 
 export default function RoomsPage() {
   const router = useRouter()
@@ -41,64 +49,70 @@ export default function RoomsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [rooms, setRooms] = useState<Room[]>([])
   const [totalPages, setTotalPages] = useState(1)
-  const [filters, setFilters] = useState({
-    search: searchParams.get("search") || "",
-    status: searchParams.get("status") as RoomStatus || undefined,
-    category: searchParams.get("category") as RoomCategory || undefined,
-    pageIndex: parseInt(searchParams.get("pageIndex") || "1"),
-  })
+  const [totalItems, setTotalItems] = useState(0)
+  const [hasPreviousPage, setHasPreviousPage] = useState(false)
+  const [hasNextPage, setHasNextPage] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(5)
 
   useEffect(() => {
-    fetchRooms()
-  }, [filters])
+    const timer = setTimeout(() => {
+      fetchRooms()
+    }, 500) // Debounce search for 500ms
+
+    return () => clearTimeout(timer)
+  }, [currentPage, searchTerm, statusFilter, categoryFilter])
 
   const fetchRooms = async () => {
     try {
       setIsLoading(true)
       const response = await roomsApi.getRooms({
-        ...filters,
-        pageSize: PAGE_SIZE,
+        Search: searchTerm,
+        PageIndex: currentPage,
+        PageSize: pageSize,
+        Status: statusFilter === 'all' ? undefined : statusFilter as RoomStatus,
+        Category: categoryFilter === 'all' ? undefined : categoryFilter as RoomCategory,
+        SortColumn: "createdAt",
+        SortDir: "Desc"
       })
       setRooms(response.contends)
       setTotalPages(response.totalPages)
-    } catch (error) {
+      setTotalItems(response.totalItems)
+      setHasPreviousPage(response.hasPreviousPage)
+      setHasNextPage(response.hasNextPage)
+    } catch (error: any) {
       toast({
         title: "Lỗi",
-        description: "Không thể tải danh sách phòng",
+        description: error.response?.data?.message || "Không thể tải danh sách phòng",
         variant: "destructive",
       })
+      setRooms([])
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleSearch = (value: string) => {
-    setFilters(prev => ({ ...prev, search: value, pageIndex: 1 }))
-    updateUrl({ ...filters, search: value, pageIndex: 1 })
+    setSearchTerm(value)
+    setCurrentPage(1)
   }
 
-  const handleStatusChange = (value: RoomStatus) => {
-    setFilters(prev => ({ ...prev, status: value, pageIndex: 1 }))
-    updateUrl({ ...filters, status: value, pageIndex: 1 })
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value)
+    setCurrentPage(1)
   }
 
-  const handleCategoryChange = (value: RoomCategory) => {
-    setFilters(prev => ({ ...prev, category: value, pageIndex: 1 }))
-    updateUrl({ ...filters, category: value, pageIndex: 1 })
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value)
+    setCurrentPage(1)
   }
 
   const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, pageIndex: page }))
-    updateUrl({ ...filters, pageIndex: page })
-  }
-
-  const updateUrl = (params: typeof filters) => {
-    const searchParams = new URLSearchParams()
-    if (params.search) searchParams.set("search", params.search)
-    if (params.status) searchParams.set("status", params.status)
-    if (params.category) searchParams.set("category", params.category)
-    searchParams.set("pageIndex", params.pageIndex.toString())
-    router.push(`/admin/rooms?${searchParams.toString()}`)
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page)
   }
 
   const getStatusColor = (status: RoomStatus) => {
@@ -113,6 +127,21 @@ export default function RoomsPage() {
         return "bg-red-500"
       default:
         return "bg-gray-500"
+    }
+  }
+
+  const getStatusLabel = (status: RoomStatus) => {
+    switch (status) {
+      case RoomStatus.Active:
+        return "Hoạt động"
+      case RoomStatus.Inactive:
+        return "Không hoạt động"
+      case RoomStatus.Maintenance:
+        return "Bảo trì"
+      case RoomStatus.Closed:
+        return "Đóng cửa"
+      default:
+        return status
     }
   }
 
@@ -177,28 +206,30 @@ export default function RoomsPage() {
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Tìm kiếm phòng..."
-                  value={filters.search}
+                  value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="pl-8"
                 />
               </div>
             </div>
-            <Select value={filters.status} onValueChange={handleStatusChange}>
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
                 <SelectItem value={RoomStatus.Active}>Hoạt động</SelectItem>
                 <SelectItem value={RoomStatus.Inactive}>Không hoạt động</SelectItem>
                 <SelectItem value={RoomStatus.Maintenance}>Bảo trì</SelectItem>
                 <SelectItem value={RoomStatus.Closed}>Đóng cửa</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filters.category} onValueChange={handleCategoryChange}>
+            <Select value={categoryFilter} onValueChange={handleCategoryChange}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Loại phòng" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
                 <SelectItem value={RoomCategory.Stage}>Sân khấu</SelectItem>
                 <SelectItem value={RoomCategory.Studio}>Studio</SelectItem>
                 <SelectItem value={RoomCategory.Outdoor}>Ngoài trời</SelectItem>
@@ -253,7 +284,7 @@ export default function RoomsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(room.status)}>
-                          {room.status}
+                          {getStatusLabel(room.status)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -319,32 +350,25 @@ export default function RoomsPage() {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Hiển thị {rooms.length} trên tổng số {totalPages * PAGE_SIZE} phòng
+            Hiển thị {rooms.length} trên tổng số {totalItems} phòng
           </p>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(filters.pageIndex - 1)}
-              disabled={filters.pageIndex === 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={!hasPreviousPage}
             >
               Trước
             </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={filters.pageIndex === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </Button>
-            ))}
+            <div className="text-sm">
+              Trang {currentPage} / {totalPages}
+            </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(filters.pageIndex + 1)}
-              disabled={filters.pageIndex === totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={!hasNextPage}
             >
               Sau
             </Button>

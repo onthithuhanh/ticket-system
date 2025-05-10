@@ -71,7 +71,7 @@ export default function AboutPage() {
               <div className="relative">
                 <div className="aspect-video overflow-hidden rounded-lg">
                   <img
-                    src="/theater.jpg"
+                    src="https://skda.edu.vn/wp-content/uploads/7-20.jpg"
                     alt="Nhà hát"
                     className="h-full w-full object-cover"
                   />

@@ -34,7 +34,7 @@ export default function CreateShowtimePage() {
       try {
         const [eventsResponse, roomsResponse] = await Promise.all([
           eventsApi.getEvents({ pageIndex: 1, pageSize: 100, isCancelled: false }),
-          roomsApi.getRooms({ pageIndex: 1, pageSize: 100, status: RoomStatus.Active })
+          roomsApi.getRooms({ PageIndex: 1, PageSize: 100, Status: RoomStatus.Active })
         ])
         setEvents(eventsResponse.contends)
         setRooms(roomsResponse.contends)

@@ -39,7 +39,7 @@ export default function EditShowtimePage({ params }: { params: Promise<{ id: str
         const [showtimeData, eventsResponse, roomsResponse] = await Promise.all([
           showtimesApi.getShowtime(parseInt(id)),
           eventsApi.getEvents({ pageIndex: 1, pageSize: 100 }), // Fetch all events for dropdown
-          roomsApi.getRooms({ pageIndex: 1, pageSize: 100 }) // Fetch all rooms for dropdown
+          roomsApi.getRooms({ PageIndex: 1, PageSize: 100 }) // Fetch all rooms for dropdown
         ])
 
         // Check if showtimeData has necessary properties before setting state

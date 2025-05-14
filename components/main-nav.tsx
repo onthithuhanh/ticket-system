@@ -124,12 +124,12 @@ export function MainNav() {
                   <span>Vé của tôi</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+              {/* <DropdownMenuItem asChild>
                 <Link href="/user/transactions" className="cursor-pointer">
                   <History className="mr-2 h-4 w-4" />
                   <span>Lịch sử giao dịch</span>
                 </Link>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="cursor-pointer text-red-600" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />

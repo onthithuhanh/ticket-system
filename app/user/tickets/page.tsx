@@ -103,13 +103,20 @@ export default function UserTicketsPage() {
   const fetchBookings = async () => {
     try {
       setIsLoading(true)
+      const userStr = localStorage.getItem("user")
+      if (!userStr) {
+        router.push("/login")
+        return
+      }
+      const user = JSON.parse(userStr)
+
       const fromDate = new Date()
       fromDate.setFullYear(2021)
       const toDate = new Date()
       toDate.setFullYear(2029)
 
       const response = await api.get(
-        `/Bookings?CreatedAtFrom=${fromDate.toISOString()}&CreatedAtTo=${toDate.toISOString()}`
+        `/Bookings?UserId=${user.id}&CreatedAtFrom=${fromDate.toISOString()}&CreatedAtTo=${toDate.toISOString()}`
       )
 
       setBookings(response.data.contends)
@@ -249,10 +256,10 @@ export default function UserTicketsPage() {
                                 <p className="text-sm text-muted-foreground">Tổng tiền</p>
                                 <p className="text-2xl font-bold">{booking.totalPrice.toLocaleString()}đ</p>
                               </div>
-                              <Button variant="outline" className="mt-4">
+                              {/* <Button variant="outline" className="mt-4">
                                 <Download className="mr-2 h-4 w-4" />
                                 Tải vé
-                              </Button>
+                              </Button> */}
                             </div>
                           </div>
                         </CardContent>

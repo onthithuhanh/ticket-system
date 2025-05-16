@@ -279,19 +279,23 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   <div className="space-y-4">
                     <h3 className="text-sm font-medium text-gray-500">Chọn giờ xuất chiếu</h3>
                     <div className="grid gap-4">
-                      {showtimes.map((showtime) => (
+                      {showtimes.map((showtime) => {
+                        const isPastShowtime = new Date(showtime.startTime) <= new Date();
+                        return (
                         <Button
                           key={showtime.id}
                           variant={selectedShowtime === showtime.id.toString() ? "default" : "outline"}
-                          className="w-full justify-start"
-                          onClick={() => handleShowtimeSelect(showtime.id.toString())}
+                          className={`w-full justify-start ${isPastShowtime ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => !isPastShowtime && handleShowtimeSelect(showtime.id.toString())}
+                          disabled={isPastShowtime}
                         >
                           <Calendar className="mr-2 h-4 w-4" />
                           {new Date(showtime.startTime).toLocaleDateString('vi-VN')}
                           <Clock className="ml-4 mr-2 h-4 w-4" />
                           {new Date(showtime.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                          {isPastShowtime && <span className="ml-2 text-xs text-red-500">(Đã qua)</span>}
                         </Button>
-                      ))}
+                      )})}
                     </div>
                   </div>
 

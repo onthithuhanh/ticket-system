@@ -4,7 +4,7 @@ import Link from "next/link"
 export function HeroSection() {
   return (
     <section className="w-full py-12 md:py-24 lg:py-32 bg-[#f8f9fa]">
-      <div className="container px-4 md:px-6">
+      <div className="container px-4 md:px-6 m-auto">
         <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:grid-cols-2">
           <div className="flex flex-col justify-center space-y-4">
             <div className="space-y-2">
@@ -33,9 +33,9 @@ export function HeroSection() {
             <img
               alt="Nhà hát kịch"
               className="aspect-video object-cover"
-              height={310}
+              height={410}
               src="https://skda.edu.vn/wp-content/uploads/7-20.jpg"
-              width={550}
+              width={650}
             />
           </div>
         </div>

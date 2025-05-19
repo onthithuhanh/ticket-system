@@ -232,7 +232,7 @@ export default function ContactPage() {
       <footer className="border-t bg-background">
         <div className="container-custom py-8">
           <div className="text-center text-sm text-muted-foreground">
-            © 2024 Nhà Hát Kịch Việt Nam. All rights reserved.
+            © 2025 Nhà Hát Kịch Việt Nam. 
           </div>
         </div>
       </footer>

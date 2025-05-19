@@ -174,9 +174,9 @@ export default function UserTicketsPage() {
       case "vip":
         return <Badge className="bg-purple-500">VIP</Badge>
       case "standard":
-        return <Badge className="bg-blue-500">Standard</Badge>
+        return <Badge className="bg-blue-500">Thường</Badge>
       default:
-        return <Badge>{category}</Badge>
+        return <Badge>Tiết kiệm</Badge>
     }
   }
 

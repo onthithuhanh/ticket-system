@@ -310,7 +310,7 @@ export default function UserTicketsPage() {
                                     <div className="flex items-center gap-2">
                                       <Ticket className="h-4 w-4 text-muted-foreground" />
                                       <div className="flex items-center gap-2">
-                                        <span>Ghế {ticket.seat.index}</span>
+                                        <span>Ghế {ticket.seat.id}</span>
                                         {getSeatCategoryBadge(ticket.seat.category)}
                                       </div>
                                     </div>
@@ -324,10 +324,10 @@ export default function UserTicketsPage() {
                                 <p className="text-sm text-muted-foreground">Tổng tiền</p>
                                 <p className="text-2xl font-bold">{booking.totalPrice.toLocaleString()}đ</p>
                               </div>
-                              <Button variant="outline" className="mt-4">
+                              {/* <Button variant="outline" className="mt-4">
                                 <Download className="mr-2 h-4 w-4" />
                                 Tải vé
-                              </Button>
+                              </Button> */}
                             </div>
                           </div>
                         </CardContent>

@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { showtimesApi } from "@/lib/api/showtimes"
+import { EventReviews } from "@/components/event-reviews"
 
 interface Seat {
   id: number
@@ -385,6 +386,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Reviews Section */}
+          <div className="mt-8">
+            <EventReviews eventId={parseInt(id)} />
           </div>
         </div>
       </main>

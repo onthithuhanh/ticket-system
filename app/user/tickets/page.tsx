@@ -10,6 +10,7 @@ import { CalendarDays, MapPin, Clock, Ticket, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
 import { useRouter } from "next/navigation"
+import { ReviewDialog } from "@/components/review-dialog"
 
 interface User {
   id: string
@@ -33,6 +34,7 @@ interface Ticket {
   bookingId: string
   seatId: number
   seat: Seat
+  booking?: Booking
   createdAt: string
   createdBy: string
   modifiedBy: string
@@ -84,6 +86,8 @@ export default function UserTicketsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("upcoming")
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null)
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
 
   useEffect(() => {
     const userStr = localStorage.getItem("user")
@@ -162,10 +166,23 @@ export default function UserTicketsPage() {
     return booking.status.toLowerCase() === "completed" && new Date(booking.schedule.startTime) <= new Date()
   })
 
-  const getTicketStatusBadge = (isUsed: boolean) => {
-    if (isUsed) {
+  const getTicketStatusBadge = (ticket: Ticket) => {
+    if (ticket.isUsed) {
       return <Badge className="bg-red-500">Đã sử dụng</Badge>
     }
+    
+    if (!ticket.booking?.schedule?.startTime) {
+      return <Badge className="bg-green-500">Chưa sử dụng</Badge>
+    }
+    
+    const startTime = new Date(ticket.booking.schedule.startTime)
+    const now = new Date()
+    const diffHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60)
+    
+    if (diffHours > 1) {
+      return <Badge className="bg-gray-500">Hết hạn</Badge>
+    }
+    
     return <Badge className="bg-green-500">Chưa sử dụng</Badge>
   }
 
@@ -178,6 +195,11 @@ export default function UserTicketsPage() {
       default:
         return <Badge>Tiết kiệm</Badge>
     }
+  }
+
+  const handleReviewClick = (bookingId: string) => {
+    setSelectedBookingId(bookingId)
+    setIsReviewDialogOpen(true)
   }
 
   return (
@@ -246,7 +268,7 @@ export default function UserTicketsPage() {
                                         {getSeatCategoryBadge(ticket.seat.category)}
                                       </div>
                                     </div>
-                                    {getTicketStatusBadge(ticket.isUsed)}
+                                    {getTicketStatusBadge(ticket)}
                                   </div>
                                 ))}
                               </div>
@@ -314,7 +336,7 @@ export default function UserTicketsPage() {
                                         {getSeatCategoryBadge(ticket.seat.category)}
                                       </div>
                                     </div>
-                                    {getTicketStatusBadge(ticket.isUsed)}
+                                    {getTicketStatusBadge(ticket)}
                                   </div>
                                 ))}
                               </div>
@@ -324,10 +346,15 @@ export default function UserTicketsPage() {
                                 <p className="text-sm text-muted-foreground">Tổng tiền</p>
                                 <p className="text-2xl font-bold">{booking.totalPrice.toLocaleString()}đ</p>
                               </div>
-                              {/* <Button variant="outline" className="mt-4">
-                                <Download className="mr-2 h-4 w-4" />
-                                Tải vé
-                              </Button> */}
+                              {activeTab === "past" && (
+                                <Button
+                                  variant="outline"
+                                  className="mt-4"
+                                  onClick={() => handleReviewClick(booking.id)}
+                                >
+                                  Đánh giá
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardContent>
@@ -340,6 +367,14 @@ export default function UserTicketsPage() {
           </Tabs>
         </div>
       </main>
+      <ReviewDialog
+        isOpen={isReviewDialogOpen}
+        onClose={() => {
+          setIsReviewDialogOpen(false)
+          setSelectedBookingId(null)
+        }}
+        bookingId={selectedBookingId || ""}
+      />
     </div>
   )
 } 

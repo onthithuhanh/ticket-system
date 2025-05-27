@@ -22,7 +22,7 @@ export function HeroSection() {
                   Xem Sự Kiện
                 </Button>
               </Link>
-              <Link href="/schedule">
+              <Link href="/events">
                 <Button size="lg" variant="outline" className="px-8">
                   Lịch Diễn
                 </Button>

@@ -154,20 +154,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{user.fullName}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                  {/* <p className="text-xs leading-none text-muted-foreground">{user.email}</p> */}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              {/* <DropdownMenuItem>
                 <Link href="/admin/profile" className="flex w-full">
                   Hồ sơ
                 </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
+              </DropdownMenuItem> */}
+              {/* <DropdownMenuItem>
                 <Link href="/admin/settings" className="flex w-full">
                   Cài đặt
                 </Link>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => {
                 localStorage.removeItem('user')

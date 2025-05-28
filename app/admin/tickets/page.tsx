@@ -455,14 +455,23 @@ export default function AdminTicketsPage() {
                         <TableCell>
                           <div>
                             <div className="font-medium">
-                              {booking.tickets.map((t) => {
+                              {booking.tickets.slice(0, 3).map((t) => {
                                 const status = getSeatStatus(t, booking.schedule?.startTime || "")
                                 return (
-                                  <span key={t.id} className={`${status.color} mr-2`}>
-                                    Ghế {t.seat.id} ({t.seat.category})
-                                  </span>
+                                  <div key={t.id} className={`${status.color} mb-1`}>
+                                    Ghế {t.seat.id} ({
+                                      t.seat.category === "Vip" ? "VIP" :
+                                      t.seat.category === "Normal" ? "Thường" :
+                                      t.seat.category === "Economy" ? "Tiết kiệm" : t.seat.category
+                                    })
+                                  </div>
                                 )
                               })}
+                              {booking.tickets.length > 3 && (
+                                <div className="text-muted-foreground">
+                                  ... và {booking.tickets.length - 3} ghế khác
+                                </div>
+                              )}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {booking.tickets.length} vé

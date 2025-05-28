@@ -54,7 +54,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           pageIndex: 1,
           pageSize: 10
         })
-        setShowtimes(showtimesResponse.contends)
+        // Sort showtimes by startTime
+        const sortedShowtimes = showtimesResponse.contends.sort((a, b) => 
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        )
+        setShowtimes(sortedShowtimes)
       } catch (error: any) {
         toast({
           title: "Lỗi",

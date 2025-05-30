@@ -158,8 +158,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       const newEventImages = await uploadMultipleImages(
         additionalImages.map(img => img.file),
         "events"
-      ).then(urls => urls.map((url, index) => ({ 
-        id: existingImages.length + index + 1, 
+      ).then(urls => urls.map(url => ({ 
         imageUrl: url 
       })))
 
@@ -230,7 +229,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       <SelectContent> 
                         <SelectItem value="Drame">Kịch</SelectItem>  
                         <SelectItem value="Comedy">Hài kịch</SelectItem>
-                        <SelectItem value="psychological">Tâm lý</SelectItem>
+                        <SelectItem value="Opera">Opera</SelectItem>
                         <SelectItem value="Dance">Múa ballet</SelectItem>
                         <SelectItem value="Circus">Xiếc</SelectItem>
                         <SelectItem value="Music">Nhạc kịch</SelectItem>

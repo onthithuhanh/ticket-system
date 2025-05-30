@@ -102,13 +102,12 @@ export default function CreatePlayPage() {
                         <SelectValue placeholder="Chọn thể loại" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="drama">Kịch</SelectItem>
-                        <SelectItem value="romance">Lãng mạn</SelectItem>
-                        <SelectItem value="comedy">Hài kịch</SelectItem>
-                        <SelectItem value="psychological">Tâm lý</SelectItem>
-                        <SelectItem value="ballet">Múa ballet</SelectItem>
-                        <SelectItem value="circus">Xiếc</SelectItem>
-                        <SelectItem value="musical">Nhạc kịch</SelectItem>
+                      <SelectItem value="Drame">Kịch</SelectItem>
+                        <SelectItem value="Comedy">Hài kịch</SelectItem>
+                        <SelectItem value="Opera">Opera</SelectItem>
+                        <SelectItem value="Dance">Múa ballet</SelectItem>
+                        <SelectItem value="Circus">Xiếc</SelectItem>
+                        <SelectItem value="Music">Nhạc kịch</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

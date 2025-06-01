@@ -15,6 +15,7 @@ import { ArrowLeft, Save } from "lucide-react"
 import { roomsApi, Room, RoomCategory, RoomStatus, SeatCategory } from "@/lib/api/rooms"
 import { amenitiesApi } from "@/lib/api/amenities"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 interface Amenity {
   id: number
@@ -36,6 +37,17 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
   const [isLoading, setIsLoading] = useState(false)
   const [amenities, setAmenities] = useState<Amenity[]>([])
   const [seats, setSeats] = useState<Seat[]>([])
+  const [batchUpdateRange, setBatchUpdateRange] = useState<{
+    start: string;
+    end: string;
+    category: SeatCategory;
+    status: "Available" | "Blocked";
+  }>({
+    start: "",
+    end: "",
+    category: SeatCategory.Economy,
+    status: "Available"
+  })
   const [formData, setFormData] = useState({
     name: "",
     category: "" as RoomCategory,
@@ -124,6 +136,48 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
     setSeats(prev => prev.map(seat => 
       seat.id === seatId ? { ...seat, ...updates } : seat
     ))
+  }
+
+  const handleBatchUpdate = () => {
+    const start = parseInt(batchUpdateRange.start)
+    const end = parseInt(batchUpdateRange.end)
+    
+    // Kiểm tra xem có phải là số không
+    if (isNaN(start) || isNaN(end)) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập ID ghế là số",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Kiểm tra thứ tự
+    if (start > end) {
+      toast({
+        title: "Lỗi",
+        description: "ID ghế bắt đầu phải nhỏ hơn hoặc bằng ID ghế kết thúc",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Cập nhật các ghế
+    setSeats(prev => prev.map(seat => {
+      if (seat.id >= start && seat.id <= end) {
+        return {
+          ...seat,
+          category: batchUpdateRange.category,
+          status: batchUpdateRange.status
+        }
+      }
+      return seat
+    }))
+
+    toast({
+      title: "Cập nhật thành công",
+      description: `Đã cập nhật các ghế từ ID ${start} đến ${end}`,
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -377,24 +431,96 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
                 <CardDescription>Thiết lập sơ đồ ghế cho phòng</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded-full bg-purple-500" />
-                    <span>VIP</span>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 rounded-full bg-purple-500" />
+                      <span>VIP</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 rounded-full bg-blue-500" />
+                      <span>Thường</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 rounded-full bg-gray-200" />
+                      <span>Tiết kiệm</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 bg-red-200 opacity-50 rounded-full" />
+                      <span>Không sử dụng</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded-full bg-blue-500" />
-                    <span>Thường</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded-full bg-gray-200" />
-                    <span>Tiết kiệm</span>
-                  </div>
-            
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 bg-red-200 opacity-50 rounded-full" />
-                    <span>Không sử dụng</span>
-                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">Cập nhật hàng loạt</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Cập nhật hàng loạt theo ID ghế</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Số ghế bắt đầu</Label>
+                            <Input
+                              type="number"
+                              min={1} 
+                              value={batchUpdateRange.start}
+                              onChange={(e) => setBatchUpdateRange(prev => ({ ...prev, start: e.target.value }))}
+                              placeholder="1"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Số ghế kết thúc</Label>
+                            <Input
+                              type="number"
+                              min={1} 
+                              value={batchUpdateRange.end}
+                              onChange={(e) => setBatchUpdateRange(prev => ({ ...prev, end: e.target.value }))}
+                              placeholder="20"
+                            />
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <p>Nhập Số của ghế cần cập nhật (Số hiển thị trên mỗi ghế)</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Loại ghế</Label>
+                          <Select
+                            value={batchUpdateRange.category}
+                            onValueChange={(value) => setBatchUpdateRange(prev => ({ ...prev, category: value as SeatCategory }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={SeatCategory.Vip}>VIP</SelectItem>
+                              <SelectItem value={SeatCategory.Normal}>Thường</SelectItem>
+                              <SelectItem value={SeatCategory.Economy}>Tiết kiệm</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Trạng thái</Label>
+                          <Select
+                            value={batchUpdateRange.status}
+                            onValueChange={(value) => setBatchUpdateRange(prev => ({ ...prev, status: value as "Available" | "Blocked" }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Available">Có sẵn</SelectItem>
+                              <SelectItem value="Blocked">Không sử dụng</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button onClick={handleBatchUpdate} className="w-full">
+                          Cập nhật
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 <div className="flex justify-center">

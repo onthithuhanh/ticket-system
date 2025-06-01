@@ -16,6 +16,7 @@ import { ArrowLeft, Info } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { roomsApi, RoomCategory, RoomStatus, SeatCategory } from "@/lib/api/rooms"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 interface Amenity {
   id: number;
@@ -51,6 +52,17 @@ export default function CreateRoomPage() {
     height: "",
     numberSeatsOfRow: "",
     columns: "",
+  })
+  const [batchUpdateRange, setBatchUpdateRange] = useState<{
+    start: string;
+    end: string;
+    category: SeatCategory;
+    status: "Available" | "Blocked";
+  }>({
+    start: "",
+    end: "",
+    category: SeatCategory.Economy,
+    status: "Available"
   })
 
   useEffect(() => {
@@ -200,6 +212,36 @@ export default function CreateRoomPage() {
       default:
         return "bg-gray-200"
     }
+  }
+
+  const handleBatchUpdate = () => {
+    const start = parseInt(batchUpdateRange.start)
+    const end = parseInt(batchUpdateRange.end)
+    
+    if (isNaN(start) || isNaN(end) || start > end || start < 1 || end > seats.length) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập khoảng ghế hợp lệ",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setSeats(prev => prev.map(seat => {
+      if (seat.id >= start && seat.id <= end) {
+        return {
+          ...seat,
+          category: batchUpdateRange.category,
+          status: batchUpdateRange.status
+        }
+      }
+      return seat
+    }))
+
+    toast({
+      title: "Cập nhật thành công",
+      description: `Đã cập nhật ${end - start + 1} ghế từ ${start} đến ${end}`,
+    })
   }
 
   return (
@@ -435,6 +477,79 @@ export default function CreateRoomPage() {
 
                 {seats.length > 0 && (
                   <div className="mt-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">Sơ đồ ghế</h3>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline">Cập nhật hàng loạt</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Cập nhật hàng loạt</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Từ ghế số</Label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={seats.length}
+                                  value={batchUpdateRange.start}
+                                  onChange={(e) => setBatchUpdateRange(prev => ({ ...prev, start: e.target.value }))}
+                                  placeholder="1"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Đến ghế số</Label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={seats.length}
+                                  value={batchUpdateRange.end}
+                                  onChange={(e) => setBatchUpdateRange(prev => ({ ...prev, end: e.target.value }))}
+                                  placeholder="20"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Loại ghế</Label>
+                              <Select
+                                value={batchUpdateRange.category}
+                                onValueChange={(value) => setBatchUpdateRange(prev => ({ ...prev, category: value as SeatCategory }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={SeatCategory.Vip}>VIP</SelectItem>
+                                  <SelectItem value={SeatCategory.Normal}>Thường</SelectItem>
+                                  <SelectItem value={SeatCategory.Economy}>Tiết kiệm</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Trạng thái</Label>
+                              <Select
+                                value={batchUpdateRange.status}
+                                onValueChange={(value) => setBatchUpdateRange(prev => ({ ...prev, status: value as "Available" | "Blocked" }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Available">Có sẵn</SelectItem>
+                                  <SelectItem value="Blocked">Không sử dụng</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <Button onClick={handleBatchUpdate} className="w-full">
+                              Cập nhật
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                     <div className="grid gap-2">
                       {Array.from({ length: parseInt(formData.numberSeatsOfRow) }, (_, rowIndex) => (
                         <div key={rowIndex} className="flex gap-2">

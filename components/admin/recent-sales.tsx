@@ -16,7 +16,7 @@ const RecentSales = memo(function RecentSales({ transactions }: RecentSalesProps
   }
 
   // Take only first 3 transactions
-  const displayTransactions = transactions.slice(0, 3)
+  const displayTransactions = transactions.slice(0, 5)
   // Calculate how many empty slots we need to fill
   const emptySlots = 3 - displayTransactions.length
 

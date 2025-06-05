@@ -47,6 +47,7 @@ interface Booking {
   id: string
   totalPrice: number
   status: string
+  modifiedAt: string
   method: string
   createdAt: string
   user: {
@@ -123,7 +124,12 @@ export default function UserTicketsPage() {
         `/Bookings?UserId=${user.id}&CreatedAtFrom=${fromDate.toISOString()}&CreatedAtTo=${toDate.toISOString()}`
       )
 
-      setBookings(response.data.contends)
+      // Sort bookings by modifiedAt in descending order (newest first)
+      const sortedBookings = response.data.contends.sort((a: Booking, b: Booking) => 
+        new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime()
+      )
+
+      setBookings(sortedBookings)
     } catch (error) {
       toast({
         title: "Lỗi",
@@ -258,6 +264,10 @@ export default function UserTicketsPage() {
                                 <MapPin className="h-4 w-4 text-muted-foreground" />
                                 <span>{booking.schedule?.room?.location || "Không có địa điểm"}</span>
                               </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span>Thời gian mua: {formatDateTime(booking.modifiedAt).date} {formatDateTime(booking.modifiedAt).time}</span>
+                              </div>
                               <div className="space-y-1">
                                 {booking.tickets.map((ticket) => (
                                   <div key={ticket.id} className="flex items-center justify-between border-b pb-2">
@@ -325,6 +335,10 @@ export default function UserTicketsPage() {
                               <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4 text-muted-foreground" />
                                 <span>{booking.schedule?.room?.location || "Không có địa điểm"}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span>Thời gian mua: {formatDateTime(booking.modifiedAt).date} {formatDateTime(booking.modifiedAt).time}</span>
                               </div>
                               <div className="space-y-1">
                                 {booking.tickets.map((ticket) => (

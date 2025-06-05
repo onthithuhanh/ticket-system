@@ -285,7 +285,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     <h3 className="text-sm font-medium text-gray-500">Chọn giờ xuất chiếu</h3>
                     <div className="grid gap-4">
                       {showtimes.map((showtime) => {
-                        const isPastShowtime = new Date(showtime.startTime) <= new Date();
+                        const showtimeDate = new Date(showtime.startTime);
+                        const now = new Date();
+                        const thirtyMinutesAfterStart = new Date(showtimeDate.getTime() + 30 * 60000);
+                        const isPastShowtime = now > thirtyMinutesAfterStart;
                         return (
                         <Button
                           key={showtime.id}

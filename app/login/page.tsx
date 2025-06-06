@@ -52,7 +52,7 @@ export default function LoginPage() {
       })
       // Check if user has admin role
       if (response.userName?.includes("admin")) {
-        router.push("/admin/events")
+        router.push("/admin/dashboard")
       } else {
         router.push("/")
       }
